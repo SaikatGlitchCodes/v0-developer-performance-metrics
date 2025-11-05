@@ -12,7 +12,7 @@ interface TeamDevelopersSectionProps {
 
 export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectionProps) {
   const [developers, setDevelopers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDeveloperMetrics()
@@ -21,11 +21,10 @@ export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectio
   const fetchDeveloperMetrics = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/github/developer-metrics?teamId=${teamId}`)
+      const response = await fetch(`/api/team-management/team-members?teamId=${teamId}`)
       const data = await response.json()
-
-      if (data.teamMembers) {
-        setDevelopers(data.teamMembers)
+      if (data.team_members.length > 0) {
+        setDevelopers(data.team_members)
       }
     } catch (error) {
       console.error("Error fetching developer metrics:", error)
@@ -33,7 +32,6 @@ export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectio
       setLoading(false)
     }
   }
-
   if (loading) {
     return (
       <Card>

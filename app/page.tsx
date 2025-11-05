@@ -114,7 +114,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium">Compare With (Optional)</label>
+                <label className="text-sm font-medium">Reviewers (Optional)</label>
                 <Select value={comparisonTeam} onValueChange={setComparisonTeam}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select comparison team" />

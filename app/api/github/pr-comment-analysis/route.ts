@@ -1,88 +1,50 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { type NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const teamId = request.nextUrl.searchParams.get("teamId")
-    const comparisonTeamId = request.nextUrl.searchParams.get("comparisonTeamId")
+    const teamId = request.nextUrl.searchParams.get("teamId");
+    const comparisonTeamId =
+      request.nextUrl.searchParams.get("comparisonTeamId");
 
     if (!teamId) {
-      return NextResponse.json({ error: "teamId is required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "teamId is required" },
+        { status: 400 }
+      );
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient();
 
-    const { data: teamAnalysis, error: teamError } = await supabase
-      .from("pr_comment_analysis")
+    // Fetch all team members for the main team
+    const allTeamMembersResponse = await supabase
+      .from("team_members")
       .select(
-        `
-        *,
-        pull_requests (
-          created_at,
-          pr_number,
-          pr_title
-        )
-      `,
+        `github_users (
+          github_username
+        )`
       )
-      .eq("team_id", teamId)
-      .order("created_at", { ascending: false, foreignTable: "pull_requests" })
+      .eq("team_id", teamId);
 
-    if (teamError) throw teamError
+    if (allTeamMembersResponse.error) throw allTeamMembersResponse.error;
+    const teamMemberUsernames = allTeamMembersResponse.data.map((m) => m.github_users?.github_username);
+    console.log("Team Member Usernames:", teamMemberUsernames);
 
-    // Calculate quarterly breakdown for team member vs external comments
-    const quarterlyCommentAnalysis = calculateQuarterlyCommentAnalysis(teamAnalysis || [])
+    // Fetch PR for the main team
+    
 
-    let comparisonAnalysis = null
-    if (comparisonTeamId && comparisonTeamId !== "none") {
-      const { data: compData, error: compError } = await supabase
-        .from("pr_comment_analysis")
-        .select(
-          `
-          *,
-          pull_requests (
-            created_at,
-            pr_number,
-            pr_title
-          )
-        `,
-        )
-        .eq("team_id", comparisonTeamId)
-
-      if (compError) throw compError
-
-      comparisonAnalysis = calculateQuarterlyCommentAnalysis(compData || [])
-    }
-
-    // Get detailed PR comments for display
-    const { data: prComments, error: commentsError } = await supabase
-      .from("pr_comment_analysis")
-      .select(
-        `
-        *,
-        pull_requests (
-          id,
-          pr_number,
-          pr_title,
-          pr_url,
-          created_at,
-          status
-        )
-      `,
-      )
-      .eq("team_id", teamId)
-      .order("created_at", { ascending: false, foreignTable: "pull_requests" })
-      .limit(50)
-
-    if (commentsError) throw commentsError
 
     return NextResponse.json({
-      quarterlyCommentAnalysis,
-      comparisonAnalysis,
-      prComments: prComments || [],
-    })
+      // quarterlyCommentAnalysis,
+      // comparisonAnalysis,
+      // prComments: prComments || [],
+    });
   } catch (error) {
-    console.error("Error getting PR comment analysis:", error)
-    return NextResponse.json({ error: "Failed to get PR comment analysis" }, { status: 500 })
+    console.error("Error getting PR comment analysis:", error);
+    return NextResponse.json(
+      { error: "Failed to get PR comment analysis" },
+      { status: 500 }
+    );
   }
 }
 
@@ -90,16 +52,18 @@ function calculateQuarterlyCommentAnalysis(analysis: any[]) {
   const quarterMap = new Map<
     string,
     {
-      totalComments: number
-      teamMemberComments: number
-      externalComments: number
-      prCount: number
+      totalComments: number;
+      teamMemberComments: number;
+      externalComments: number;
+      prCount: number;
     }
-  >()
+  >();
 
   analysis.forEach((item) => {
-    const date = new Date(item.pull_requests?.created_at || item.created_at)
-    const quarter = `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`
+    const date = new Date(item.pull_requests?.created_at || item.created_at);
+    const quarter = `${date.getFullYear()}-Q${
+      Math.floor(date.getMonth() / 3) + 1
+    }`;
 
     if (!quarterMap.has(quarter)) {
       quarterMap.set(quarter, {
@@ -107,15 +71,15 @@ function calculateQuarterlyCommentAnalysis(analysis: any[]) {
         teamMemberComments: 0,
         externalComments: 0,
         prCount: 0,
-      })
+      });
     }
 
-    const data = quarterMap.get(quarter)!
-    data.totalComments += item.total_comments || 0
-    data.teamMemberComments += item.team_member_comments || 0
-    data.externalComments += item.external_comments || 0
-    data.prCount += 1
-  })
+    const data = quarterMap.get(quarter)!;
+    data.totalComments += item.total_comments || 0;
+    data.teamMemberComments += item.team_member_comments || 0;
+    data.externalComments += item.external_comments || 0;
+    data.prCount += 1;
+  });
 
   const result = Array.from(quarterMap.entries())
     .map(([quarter, data]) => ({
@@ -124,10 +88,16 @@ function calculateQuarterlyCommentAnalysis(analysis: any[]) {
       teamMemberComments: data.teamMemberComments,
       externalComments: data.externalComments,
       prCount: data.prCount,
-      teamMemberPercent: data.totalComments > 0 ? ((data.teamMemberComments / data.totalComments) * 100).toFixed(2) : 0,
-      externalPercent: data.totalComments > 0 ? ((data.externalComments / data.totalComments) * 100).toFixed(2) : 0,
+      teamMemberPercent:
+        data.totalComments > 0
+          ? ((data.teamMemberComments / data.totalComments) * 100).toFixed(2)
+          : 0,
+      externalPercent:
+        data.totalComments > 0
+          ? ((data.externalComments / data.totalComments) * 100).toFixed(2)
+          : 0,
     }))
-    .sort((a, b) => b.quarter.localeCompare(a.quarter))
+    .sort((a, b) => b.quarter.localeCompare(a.quarter));
 
-  return result
+  return result;
 }

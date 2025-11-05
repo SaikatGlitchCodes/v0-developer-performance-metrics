@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const teamId = request.nextUrl.searchParams.get("team_id")
+    const teamId = request.nextUrl.searchParams.get("teamId")
     const supabase = await createClient()
 
     let query = supabase.from("team_members").select(
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       throw error
     }
 
-    return NextResponse.json({ team_member: data[0] })
+    return NextResponse.json({ team_member: data })
   } catch (error) {
     console.error("Error assigning team member:", error)
     return NextResponse.json({ error: "Failed to assign team member" }, { status: 500 })

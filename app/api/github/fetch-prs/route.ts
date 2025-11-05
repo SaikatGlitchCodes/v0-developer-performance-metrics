@@ -1,9 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { orgName, token, teamId } = await request.json()
+    const { orgName, token, teamId } = await {
+      orgName: request.nextUrl.searchParams.get("orgName")!,
+      token: request.nextUrl.searchParams.get("token")!,
+      teamId: request.nextUrl.searchParams.get("teamId")!,
+    }
 
     if (!orgName || !token || !teamId) {
       return NextResponse.json({ error: "orgName, token, and teamId are required" }, { status: 400 })
@@ -45,7 +49,7 @@ export async function POST(request: NextRequest) {
           `https://github.hy-vee.cloud/api/v3/search/issues?q=author:${member.github_username}+org:${orgName}+type:pr&per_page=100`,
           {
             headers: {
-              Authorization: `token ${token}`,
+              Authorization: `Bearer ${token}`,
               Accept: "application/vnd.github.v3+json",
             },
           },
@@ -73,13 +77,6 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error(`Error fetching PRs for ${member.github_username}:`, err)
       }
-    }
-
-    // Store PRs in database
-    if (allPRs.length > 0) {
-      const { error: insertError } = await supabase.from("pull_requests").upsert(allPRs, { onConflict: "github_pr_id" })
-
-      if (insertError) throw insertError
     }
 
     return NextResponse.json({

@@ -10,22 +10,6 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
-
-    // Get all PRs for this team
-    const { data: prs, error: prsError } = await supabase
-      .from("pull_requests")
-      .select("id, pr_number, github_pr_id")
-      .eq("team_id", teamId)
-
-    if (prsError) throw prsError
-
-    if (!prs || prs.length === 0) {
-      return NextResponse.json({
-        comments: [],
-        message: "No PRs found for this team",
-      })
-    }
-
     // Get team members for comment categorization
     const { data: teamMembers, error: membersError } = await supabase
       .from("team_members")
@@ -44,58 +28,58 @@ export async function POST(request: NextRequest) {
     const teamMemberUsernames = new Set(
       teamMembers?.flatMap((m) => m.github_users?.map((u: any) => u.github_username) || []) || [],
     )
-
+    console.log("Team Member Usernames:", Array.from(teamMemberUsernames))
     const allComments: any[] = []
     const commentAnalysis: any[] = []
 
-    for (const pr of prs) {
-      try {
-        const response = await fetch(
-          `https://github.hy-vee.cloud/api/v3/repos/${org}/${repo}/issues/${pr.pr_number}/comments?per_page=100`,
-          {
-            headers: {
-              Authorization: `token ${token}`,
-              Accept: "application/vnd.github.v3+json",
-            },
-          },
-        )
+    // for (const pr of prs) {
+    //   try {
+    //     const response = await fetch(
+    //       `https://github.hy-vee.cloud/api/v3/repos/${org}/${repo}/issues/${pr.pr_number}/comments?per_page=100`,
+    //       {
+    //         headers: {
+    //           Authorization: `token ${token}`,
+    //           Accept: "application/vnd.github.v3+json",
+    //         },
+    //       },
+    //     )
 
-        if (!response.ok) continue
+    //     if (!response.ok) continue
 
-        const comments = await response.json()
+    //     const comments = await response.json()
 
-        let teamMemberComments = 0
-        let externalComments = 0
+    //     let teamMemberComments = 0
+    //     let externalComments = 0
 
-        for (const comment of comments) {
-          allComments.push({
-            github_comment_id: comment.id,
-            pull_request_id: pr.id,
-            comment_author_username: comment.user.login,
-            comment_body: comment.body,
-            created_at: comment.created_at,
-          })
+    //     for (const comment of comments) {
+    //       allComments.push({
+    //         github_comment_id: comment.id,
+    //         pull_request_id: pr.id,
+    //         comment_author_username: comment.user.login,
+    //         comment_body: comment.body,
+    //         created_at: comment.created_at,
+    //       })
 
-          // Categorize comment source
-          if (teamMemberUsernames.has(comment.user.login)) {
-            teamMemberComments++
-          } else {
-            externalComments++
-          }
-        }
+    //       // Categorize comment source
+    //       if (teamMemberUsernames.has(comment.user.login)) {
+    //         teamMemberComments++
+    //       } else {
+    //         externalComments++
+    //       }
+    //     }
 
-        // Store comment analysis
-        commentAnalysis.push({
-          pull_request_id: pr.id,
-          team_id: teamId,
-          total_comments: comments.length,
-          team_member_comments: teamMemberComments,
-          external_comments: externalComments,
-        })
-      } catch (err) {
-        console.error(`Error fetching comments for PR #${pr.pr_number}:`, err)
-      }
-    }
+    //     // Store comment analysis
+    //     commentAnalysis.push({
+    //       pull_request_id: pr.id,
+    //       team_id: teamId,
+    //       total_comments: comments.length,
+    //       team_member_comments: teamMemberComments,
+    //       external_comments: externalComments,
+    //     })
+    //   } catch (err) {
+    //     console.error(`Error fetching comments for PR #${pr.pr_number}:`, err)
+    //   }
+    // }
 
     // Store comments and analysis in database
     if (allComments.length > 0) {

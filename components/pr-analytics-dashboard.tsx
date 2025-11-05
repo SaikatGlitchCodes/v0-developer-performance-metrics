@@ -118,7 +118,7 @@ export function PRAnalyticsDashboard({ teamId, teamName, comparisonTeamId, compa
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total PRs ({teamName})</CardTitle>
+            <CardTitle className="text-sm font-medium">Total PRs </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.totalPRs, 0)}</div>
@@ -128,7 +128,7 @@ export function PRAnalyticsDashboard({ teamId, teamName, comparisonTeamId, compa
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Comments ({teamName})</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.totalComments, 0)}</div>
@@ -138,7 +138,7 @@ export function PRAnalyticsDashboard({ teamId, teamName, comparisonTeamId, compa
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Avg Comments/PR ({teamName})</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Comments/PR </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

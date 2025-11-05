@@ -6,7 +6,7 @@ import Image from "next/image"
 
 interface DeveloperPerformanceCardProps {
   developer: {
-    github_users: {
+    github_user: {
       github_username: string
       display_name: string
       avatar_url: string
@@ -30,18 +30,18 @@ interface DeveloperPerformanceCardProps {
 }
 
 export function DeveloperPerformanceCard({ developer }: DeveloperPerformanceCardProps) {
-  const { github_users, currentMetrics, improvements } = developer
-  const user = github_users
+  const { github_user } = developer
+  const user = github_user
 
-  if (!currentMetrics) {
-    return (
-      <Card className="overflow-hidden border border-border/50 hover:border-primary/50 transition-colors">
-        <CardContent className="p-4 text-center text-muted-foreground">
-          <p className="text-sm">No metrics available for {user.display_name}</p>
-        </CardContent>
-      </Card>
-    )
-  }
+  // if (!currentMetrics) {
+  //   return (
+  //     <Card className="overflow-hidden border border-border/50 hover:border-primary/50 transition-colors">
+  //       <CardContent className="p-4 text-center text-muted-foreground">
+  //         <p className="text-sm">No metrics available for {user.display_name}</p>
+  //       </CardContent>
+  //     </Card>
+  //   )
+  // }
 
   const MetricBadge = ({
     label,
@@ -113,26 +113,26 @@ export function DeveloperPerformanceCard({ developer }: DeveloperPerformanceCard
         {/* Header with avatar */}
         <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/30">
           <Image
-            src={user.avatar_url || "/placeholder.svg?height=40&width=40&query=developer+avatar"}
-            alt={user.display_name}
+            src={"https://i.sstatic.net/frlIf.png"}
+            alt={user?.display_name}
             width={40}
             height={40}
             className="w-10 h-10 rounded-full"
           />
           <div className="flex-1">
-            <p className="font-semibold text-sm">{user.display_name}</p>
-            <p className="text-xs text-muted-foreground">@{user.github_username}</p>
+            <p className="font-semibold text-sm">{user?.display_name}</p>
+            <p className="text-xs text-muted-foreground">@{user?.github_username}</p>
           </div>
         </div>
 
-        {/* Main metrics scores */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        Main metrics scores
+        {/* <div className="grid grid-cols-2 gap-4 mb-4">
           <ScoreCircle score={currentMetrics.productivity_score} label="Productivity" />
           <ScoreCircle score={currentMetrics.code_review_quality_score} label="Review Quality" />
-        </div>
+        </div> */}
 
         {/* Detailed metrics with quarterly comparison */}
-        <div className="space-y-2 mb-4">
+        {/* <div className="space-y-2 mb-4">
           <MetricBadge
             label="Merge Rate"
             value={`${Math.round(currentMetrics.merge_rate)}%`}
@@ -165,11 +165,11 @@ export function DeveloperPerformanceCard({ developer }: DeveloperPerformanceCard
               100
             }
           />
-        </div>
+        </div> */}
 
         {/* Quarterly comparison summary */}
         <div className="text-xs text-muted-foreground bg-secondary/20 rounded-lg p-2">
-          <p>
+          {/* <p>
             <span className="font-medium">Productivity:</span>{" "}
             <span className={improvements.productivity.percentage >= 0 ? "text-green-600" : "text-red-600"}>
               {improvements.productivity.percentage >= 0 ? "+" : ""}
@@ -182,7 +182,7 @@ export function DeveloperPerformanceCard({ developer }: DeveloperPerformanceCard
               {improvements.codeReviewQuality.percentage >= 0 ? "+" : ""}
               {improvements.codeReviewQuality.percentage.toFixed(1)}%
             </span>
-          </p>
+          </p> */}
         </div>
       </CardContent>
     </Card>

@@ -174,7 +174,7 @@ export default function EngineerProfilePage() {
             <div className="flex items-center gap-6">
               {developer.avatar_url && (
                 <img
-                  src={developer.avatar_url || "/placeholder.svg"}
+                  src={"https://avatars.githubusercontent.com/u/627410?v=4&size=80"}
                   alt={developer.display_name}
                   className="w-24 h-24 rounded-full border-4 border-primary"
                 />

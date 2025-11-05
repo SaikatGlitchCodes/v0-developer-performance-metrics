@@ -23,7 +23,7 @@ export function EngineerProfileLink({
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
             {avatarUrl && (
-              <img src={avatarUrl || "/placeholder.svg"} alt={displayName} className="w-12 h-12 rounded-full" />
+              <img src={"https://avatars.githubusercontent.com/u/627410?v=4&size=80"} alt={displayName} className="w-12 h-12 rounded-full" />
             )}
             <div className="flex-1">
               <p className="font-semibold hover:text-primary">{displayName}</p>

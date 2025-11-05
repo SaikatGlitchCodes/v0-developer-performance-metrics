@@ -1,102 +1,133 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Plus, Trash2, RefreshCw } from "lucide-react"
+import { useState, useEffect, use } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AlertCircle, Plus, Trash2, RefreshCw } from "lucide-react";
 
 interface Team {
-  id: string
-  name: string
-  description: string
+  id: string;
+  name: string;
+  description: string;
 }
 
 interface GitHubUser {
-  id: string
-  github_username: string
-  github_id: number
-  display_name: string
-  avatar_url: string
-  bio: string
-  company: string
-  location: string
+  id: string;
+  github_username: string;
+  github_id: number;
+  display_name: string;
+  avatar_url: string;
+  bio: string;
+  company: string;
+  location: string;
 }
 
 interface TeamMember {
-  id: string
-  team_id: string
-  github_user_id: string
-  github_user: GitHubUser
+  id: string;
+  team_id: string;
+  github_user_id: string;
+  github_user: GitHubUser;
 }
 
 export function TeamManagementPage() {
-  const [teams, setTeams] = useState<Team[]>([])
-  const [githubUsers, setGithubUsers] = useState<GitHubUser[]>([])
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [newTeamName, setNewTeamName] = useState("")
-  const [newTeamDescription, setNewTeamDescription] = useState("")
-  const [selectedTeam, setSelectedTeam] = useState<string>("")
-  const [selectedUser, setSelectedUser] = useState<string>("")
-  const [githubToken, setGithubToken] = useState("")
-  const [githubOrg, setGithubOrg] = useState("Digital")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string>("")
-  const [success, setSuccess] = useState<string>("")
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [githubUsers, setGithubUsers] = useState<GitHubUser[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<TeamMember[]>(
+    []
+  );
+  const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamDescription, setNewTeamDescription] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState<string>("");
+  const [selectedUser, setSelectedUser] = useState<GitHubUser | null>(null);
+  const [githubToken, setGithubToken] = useState("");
+  const [githubOrg, setGithubOrg] = useState("Digital");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
   // Load initial data
   useEffect(() => {
-    loadTeams()
-    loadGithubUsers()
-  }, [])
+    loadTeams();
+    loadGithubUsers();
+    loadTeamMembers();
+  }, []);
+
+  useEffect(() => {
+    if (selectedTeam) {
+      loadSelectedTeamMembers(selectedTeam);
+    } else {
+      setSelectedTeamMembers([]);
+    }
+  }, [selectedTeam]);
 
   const loadTeams = async () => {
     try {
-      const res = await fetch("/api/team-management/teams")
-      const data = await res.json()
-      setTeams(data.teams || [])
+      const res = await fetch("/api/team-management/teams");
+      const data = await res.json();
+      setTeams(data.teams || []);
     } catch (err) {
-      setError("Failed to load teams")
+      setError("Failed to load teams");
     }
-  }
+  };
 
   const loadGithubUsers = async () => {
     try {
-      const res = await fetch("/api/team-management/github-users")
-      const data = await res.json()
-      setGithubUsers(data.users || [])
+      const res = await fetch("/api/team-management/github-users");
+      const data = await res.json();
+      setGithubUsers(data.users || []);
     } catch (err) {
-      setError("Failed to load GitHub users")
+      setError("Failed to load GitHub users");
     }
-  }
+  };
 
   const loadTeamMembers = async () => {
-    if (!selectedTeam) return
     try {
-      const res = await fetch(`/api/team-management/team-members?team_id=${selectedTeam}`)
-      const data = await res.json()
-      setTeamMembers(data.team_members || [])
+      const res = await fetch(`/api/team-management/team-members`);
+      const data = await res.json();
+      setTeamMembers(data.team_members || []);
     } catch (err) {
-      setError("Failed to load team members")
+      setError("Failed to load team members");
     }
-  }
+  };
 
-  useEffect(() => {
-    loadTeamMembers()
-  }, [selectedTeam])
+  const loadSelectedTeamMembers = async (teamId: string) => {
+    try {
+      const res = await fetch(
+        `/api/team-management/team-members?teamId=${teamId}`
+      );
+      const data = await res.json();
+      setSelectedTeamMembers(data.team_members || []);
+    } catch (err) {
+      setError("Failed to load team members for selected team");
+    }
+  };
 
   const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!newTeamName.trim()) {
-      setError("Team name is required")
-      return
+      setError("Team name is required");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch("/api/team-management/teams", {
         method: "POST",
@@ -105,29 +136,29 @@ export function TeamManagementPage() {
           name: newTeamName,
           description: newTeamDescription,
         }),
-      })
+      });
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-      setTeams([...teams, data.team])
-      setNewTeamName("")
-      setNewTeamDescription("")
-      setSuccess("Team created successfully!")
+      setTeams([...teams, data.team]);
+      setNewTeamName("");
+      setNewTeamDescription("");
+      setSuccess("Team created successfully!");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create team")
+      setError(err instanceof Error ? err.message : "Failed to create team");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFetchGithubUsers = async () => {
     if (!githubToken || !githubOrg) {
-      setError("GitHub token and organization name are required")
-      return
+      setError("GitHub token and organization name are required");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch("/api/github/fetch-org-members", {
         method: "POST",
@@ -136,84 +167,97 @@ export function TeamManagementPage() {
           token: githubToken,
           org: githubOrg,
         }),
-      })
+      });
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
       // Save users to database
       const saveRes = await fetch("/api/team-management/github-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ users: data.users }),
-      })
+      });
 
-      const saveData = await saveRes.json()
-      if (!saveRes.ok) throw new Error(saveData.error)
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error);
 
-      setGithubUsers(saveData.users)
-      setGithubToken("")
-      setSuccess(`Successfully fetched and saved ${data.users.length} GitHub users!`)
+      setGithubUsers(saveData.users);
+      setGithubToken("");
+      setSuccess(
+        `Successfully fetched and saved ${data.users.length} GitHub users!`
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch GitHub users")
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch GitHub users"
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAssignUser = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!selectedTeam || !selectedUser) {
-      setError("Please select a team and user")
-      return
+      setError("Please select a team and user");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch("/api/team-management/team-members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           team_id: selectedTeam,
-          github_user_id: selectedUser,
+          github_user_id: selectedUser?.id,
         }),
-      })
+      });
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTeamMembers([...teamMembers, data.team_member]);
+      await loadSelectedTeamMembers(selectedTeam);
 
-      setTeamMembers([...teamMembers, data.team_member])
-      setSelectedUser("")
-      setSuccess("User assigned to team successfully!")
+      setSuccess("User assigned to team successfully!");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign user")
+      setError(err instanceof Error ? err.message : "Failed to assign user");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleRemoveUser = async (teamMemberId: string) => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch(`/api/team-management/team-members?id=${teamMemberId}`, { method: "DELETE" })
+      const res = await fetch(
+        `/api/team-management/team-members?id=${teamMemberId}`,
+        { method: "DELETE" }
+      );
 
-      if (!res.ok) throw new Error("Failed to remove user")
-
-      setTeamMembers(teamMembers.filter((member) => member.id !== teamMemberId))
-      setSuccess("User removed from team successfully!")
+      if (!res.ok) throw new Error("Failed to remove user");
+      setSelectedTeamMembers(
+        selectedTeamMembers.filter((member) => member.id !== teamMemberId)
+      );
+      await loadTeamMembers();
+      setSuccess("User removed from team successfully!");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove user")
+      setError(err instanceof Error ? err.message : "Failed to remove user");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
-          <p className="text-muted-foreground mt-2">Create teams and assign GitHub developers</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Team Management
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Create teams and assign GitHub developers
+          </p>
         </div>
 
         {error && (
@@ -234,7 +278,9 @@ export function TeamManagementPage() {
           <Card>
             <CardHeader>
               <CardTitle>Create New Team</CardTitle>
-              <CardDescription>Add a new team (pharmacy, redbox, grocery, etc.)</CardDescription>
+              <CardDescription>
+                Add a new team (pharmacy, redbox, grocery, etc.)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateTeam} className="space-y-4">
@@ -268,12 +314,16 @@ export function TeamManagementPage() {
           <Card>
             <CardHeader>
               <CardTitle>Fetch GitHub Users</CardTitle>
-              <CardDescription>Fetch developers from your GitHub organization</CardDescription>
+              <CardDescription>
+                Fetch developers from your GitHub organization
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="github-token">GitHub Personal Access Token</Label>
+                  <Label htmlFor="github-token">
+                    GitHub Personal Access Token
+                  </Label>
                   <Input
                     id="github-token"
                     type="password"
@@ -291,11 +341,17 @@ export function TeamManagementPage() {
                     onChange={(e) => setGithubOrg(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleFetchGithubUsers} disabled={loading} className="w-full">
+                <Button
+                  onClick={handleFetchGithubUsers}
+                  disabled={loading}
+                  className="w-full"
+                >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Fetch Users
                 </Button>
-                <p className="text-sm text-muted-foreground">Click once and wait. Cached until you click again.</p>
+                <p className="text-sm text-muted-foreground">
+                  Click once and wait. Cached until you click again.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -305,7 +361,9 @@ export function TeamManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle>Assign Developers to Teams</CardTitle>
-            <CardDescription>Select a team and assign GitHub developers to it</CardDescription>
+            <CardDescription>
+              Select a team and assign GitHub developers to it
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -332,13 +390,26 @@ export function TeamManagementPage() {
                   <div>
                     <Label htmlFor="user-select">Select Developer</Label>
                     <div className="flex gap-2">
-                      <Select value={selectedUser} onValueChange={setSelectedUser}>
+                      <Select
+                        value={selectedUser?.id}
+                        onValueChange={(value) =>
+                          setSelectedUser(
+                            githubUsers.find((user) => user.id === value) ||
+                              null
+                          )
+                        }
+                      >
                         <SelectTrigger id="user-select" className="flex-1">
                           <SelectValue placeholder="Choose a developer..." />
                         </SelectTrigger>
                         <SelectContent>
                           {githubUsers
-                            .filter((user) => !teamMembers.some((tm) => tm.github_user_id === user.id))
+                            .filter(
+                              (user) =>
+                                !teamMembers.some(
+                                  (tm) => tm.github_user_id === user.id
+                                )
+                            )
                             .map((user) => (
                               <SelectItem key={user.id} value={user.id}>
                                 {user.display_name} (@{user.github_username})
@@ -346,7 +417,10 @@ export function TeamManagementPage() {
                             ))}
                         </SelectContent>
                       </Select>
-                      <Button onClick={handleAssignUser} disabled={loading || !selectedUser}>
+                      <Button
+                        onClick={handleAssignUser}
+                        disabled={loading || !selectedUser}
+                      >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -354,22 +428,31 @@ export function TeamManagementPage() {
 
                   {/* Team Members List */}
                   <div className="mt-6">
-                    <h3 className="font-semibold text-foreground mb-3">Team Members ({teamMembers.length})</h3>
+                    <h3 className="font-semibold text-foreground mb-3">
+                      Team Members ({selectedTeamMembers.length})
+                    </h3>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {teamMembers.length > 0 ? (
-                        teamMembers.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between p-3 bg-muted rounded">
+                      {selectedTeamMembers.length > 0 ? (
+                        selectedTeamMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between p-3 bg-muted rounded"
+                          >
                             <div className="flex items-center gap-3">
-                              {member.github_user.avatar_url && (
+                              {member?.github_user?.avatar_url && (
                                 <img
-                                  src={member.github_user.avatar_url || "/placeholder.svg"}
-                                  alt={member.github_user.display_name}
+                                  src={"https://avatars.githubusercontent.com/u/627410?v=4&size=80"}
+                                  alt={member.github_user?.display_name}
                                   className="w-8 h-8 rounded-full"
                                 />
                               )}
                               <div>
-                                <p className="font-medium text-sm">{member.github_user.display_name}</p>
-                                <p className="text-xs text-muted-foreground">@{member.github_user.github_username}</p>
+                                <p className="font-medium text-sm">
+                                  {member?.github_user?.display_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  @{member?.github_user?.github_username}
+                                </p>
                               </div>
                             </div>
                             <Button
@@ -383,7 +466,9 @@ export function TeamManagementPage() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-muted-foreground">No developers assigned to this team yet</p>
+                        <p className="text-sm text-muted-foreground">
+                          No developers assigned to this team yet
+                        </p>
                       )}
                     </div>
                   </div>
@@ -401,23 +486,32 @@ export function TeamManagementPage() {
           <CardContent>
             <div className="space-y-2">
               {teams.map((team) => {
-                const memberCount = teamMembers.filter((tm) => tm.team_id === team.id).length
+                const memberCount = teamMembers.filter(
+                  (tm) => tm.team_id === team.id
+                ).length;
                 return (
-                  <div key={team.id} className="flex items-center justify-between p-3 bg-muted rounded">
+                  <div
+                    key={team.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded"
+                  >
                     <div>
                       <p className="font-medium">{team.name}</p>
-                      {team.description && <p className="text-sm text-muted-foreground">{team.description}</p>}
+                      {team.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {team.description}
+                        </p>
+                      )}
                     </div>
                     <span className="text-sm font-semibold bg-primary text-primary-foreground px-3 py-1 rounded-full">
                       {memberCount} members
                     </span>
                   </div>
-                )
+                );
               })}
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
