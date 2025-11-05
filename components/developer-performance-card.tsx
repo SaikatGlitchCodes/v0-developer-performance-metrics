@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface DeveloperPerformanceCardProps {
   developer: {
@@ -22,22 +22,137 @@ interface DeveloperPerformanceCardProps {
   token?: string
 }
 
+interface GitHubIssue {
+  id: number
+  number: number
+  title: string
+  state: string
+  created_at: string
+  html_url: string
+  comments: number
+  pull_request?: any
+  user: {
+    login: string
+    avatar_url: string
+  }
+}
+
+interface GitHubSearchResponse {
+  total_count: number
+  items: GitHubIssue[]
+}
+
 export function DeveloperPerformanceCard({ developer, org = "Digital", token }: DeveloperPerformanceCardProps) {
   const { github_user } = developer
   const user = github_user
-  const [issues, setIssues] = useState<any[]>([])
+  const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [loading, setLoading] = useState(false)
   const [showIssues, setShowIssues] = useState(false)
+  const [metrics, setMetrics] = useState({
+    totalPRs: 0,
+    mergedPRs: 0,
+    averageComments: 0,
+    mergeRate: 0,
+  })
 
-  const calculateMetrics = () => {
+  const GITHUB_TOKEN = "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"
+  const GITHUB_API_BASE = "https://github.hy-vee.cloud/api/v3"
+
+  useEffect(() => {
+    if (user?.github_username) {
+      fetchAndCalculateMetrics()
+    }
+  }, [user?.github_username])
+
+  const fetchAndCalculateMetrics = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch all issues/PRs authored by the user
+      const response = await fetch(
+        `${GITHUB_API_BASE}/search/issues?q=author:${user.github_username}`,
+        {
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`)
+      }
+
+      const data: GitHubSearchResponse = await response.json()
+      const allIssues = data.items || []
+      
+      // Filter for PRs only (issues with pull_request property)
+      const prs = allIssues.filter(issue => issue.pull_request)
+      
+      // Calculate metrics for last 3 months
+      const now = new Date()
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+      
+      const recentPRs = prs.filter(pr => new Date(pr.created_at) >= threeMonthsAgo)
+      
+      // For merged status, we need to check each PR individually
+      const mergedPRs = await Promise.all(
+        recentPRs.map(async (pr) => {
+          try {
+            const prResponse = await fetch(
+              `${GITHUB_API_BASE}/repos/${pr.html_url.split('/')[3]}/${pr.html_url.split('/')[4]}/pulls/${pr.number}`,
+              {
+                headers: {
+                  'Authorization': `token ${GITHUB_TOKEN}`,
+                  'Accept': 'application/vnd.github.v3+json',
+                },
+              }
+            )
+            
+            if (prResponse.ok) {
+              const prData = await prResponse.json()
+              return prData.merged_at ? pr : null
+            }
+            return null
+          } catch (error) {
+            console.error('Error fetching PR details:', error)
+            return null
+          }
+        })
+      )
+      
+      const actualMergedPRs = mergedPRs.filter(Boolean)
+      const totalComments = recentPRs.reduce((sum, pr) => sum + (pr.comments || 0), 0)
+
+      const calculatedMetrics = {
+        totalPRs: recentPRs.length,
+        mergedPRs: actualMergedPRs.length,
+        averageComments: recentPRs.length > 0 ? Math.round(totalComments / recentPRs.length) : 0,
+        mergeRate: recentPRs.length > 0 ? Math.round((actualMergedPRs.length / recentPRs.length) * 100) : 0,
+      }
+
+      setMetrics(calculatedMetrics)
+      setIssues(prs) // Store all PRs for potential display
+      
+    } catch (error) {
+      console.error("Error fetching GitHub data:", error)
+      // Fallback to old calculation method if available
+      calculateFallbackMetrics()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const calculateFallbackMetrics = () => {
     const prs = developer.prs || []
     if (prs.length === 0) {
-      return {
+      setMetrics({
         totalPRs: 0,
         mergedPRs: 0,
         averageComments: 0,
         mergeRate: 0,
-      }
+      })
+      return
     }
 
     const now = new Date()
@@ -47,44 +162,14 @@ export function DeveloperPerformanceCard({ developer, org = "Digital", token }: 
     const mergedPRs = recentPRs.filter((pr) => pr.merged_at !== null)
     const totalComments = recentPRs.reduce((sum, pr) => sum + (pr.total_comments || 0), 0)
 
-    return {
+    setMetrics({
       totalPRs: recentPRs.length,
       mergedPRs: mergedPRs.length,
       averageComments: recentPRs.length > 0 ? Math.round(totalComments / recentPRs.length) : 0,
       mergeRate: recentPRs.length > 0 ? Math.round((mergedPRs.length / recentPRs.length) * 100) : 0,
-    }
+    })
   }
 
-  const handleFetchIssues = async () => {
-    try {
-      setLoading(true)
-      const userToken = token || prompt("Enter your GitHub Personal Access Token:")
-
-      if (!userToken) {
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(
-        `/api/github/user-issues?username=${user?.github_username}&token=${userToken}&org=${org}`,
-      )
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch issues")
-      }
-
-      const data = await response.json()
-      setIssues(data.items || [])
-      setShowIssues(true)
-    } catch (error) {
-      console.error("[v0] Error fetching issues:", error)
-      alert("Failed to fetch issues from GitHub")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const metrics = calculateMetrics()
 
   const MetricBadge = ({
     label,
@@ -114,7 +199,7 @@ export function DeveloperPerformanceCard({ developer, org = "Digital", token }: 
             {/* Header with avatar */}
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/30">
               <Image
-                src={user?.avatar_url || "https://i.sstatic.net/frlIf.png"}
+                src={"https://identicons.github.com/jasonlong.png"}
                 alt={user?.display_name}
                 width={40}
                 height={40}
@@ -162,7 +247,7 @@ export function DeveloperPerformanceCard({ developer, org = "Digital", token }: 
                   {issues.map((issue) => (
                     <a
                       key={issue.id}
-                      href={issue.url}
+                      href={issue.html_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block p-3 border rounded-lg hover:bg-secondary/50 transition-colors"

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
+import axios from "axios"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,64 +21,51 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Loader2 } from "lucide-react"
 
-interface PRCommentAnalysisProps {
-  teamId: string
-  teamName: string
-  comparisonTeamId?: string
-  comparisonTeamName?: string
-}
-
-interface QuarterlyCommentData {
-  quarter: string
-  totalComments: number
-  teamMemberComments: number
-  externalComments: number
-  prCount: number
-  teamMemberPercent: string
-  externalPercent: string
-}
-
-export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparisonTeamName }: PRCommentAnalysisProps) {
-  const [quarterlyData, setQuarterlyData] = useState<QuarterlyCommentData[]>([])
-  const [comparisonData, setComparisonData] = useState<QuarterlyCommentData[]>([])
-  const [prComments, setPRComments] = useState<any[]>([])
+export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparisonTeamName }) {
+  const [prComments, setPRComments] = useState([])
+  const [allUsernames, setAllUsernames] = useState([])
   const [showAllPRs, setShowAllPRs] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [selectedGraph, setSelectedGraph] = useState<"total" | "split" | "pie">("total")
+  const [selectedGraph, setSelectedGraph] = useState("total");
+  const [totalPrs, setTotalPRs] = useState(0);
 
-  useEffect(() => {
-    fetchCommentAnalysis()
-  }, [teamId])
+  const GITHUB_TOKEN = "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"
+  const GITHUB_API_BASE = "https://github.hy-vee.cloud/api/v3"
 
-  useEffect(() => {
-    if (comparisonTeamId && comparisonTeamId !== "none") {
-      fetchComparisonAnalysis()
-    }
-  }, [comparisonTeamId])
-
-  const fetchCommentAnalysis = async () => {
+  const fetchAllTeamMembersUserName = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await fetch(`/api/github/fetch-prs?teamId=${teamId}&orgName=hy-vee`)
-      const data = await response.json()
-      setQuarterlyData(data.quarterlyCommentAnalysis || [])
-      setPRComments(data.prComments || [])
+      const response = await fetch(
+        `/api/team-management/team-members?teamId=${teamId}`
+      );
+      const data = await response.json();
+      const user_names = data.team_members.map(member => member.github_user.github_username);
+      const allPrs = await Promise.all(user_names.map(async (username) => {
+        return await axios(`https://github.hy-vee.cloud/api/v3/search/issues?q=author:${username}`, {
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+          },
+          });
+      }));
+      setShowAllPRs(allPrs);
+      console.log('allPrs', allPrs);
+      console.log(allPrs.map(val=>val.data.items.map(i=>i.comments_url)).flat());
+      setTotalPRs(allPrs.map(prs => prs.data.total_count).reduce((a, b) => a + b, 0));
     } catch (error) {
-      console.error("Error fetching comment analysis:", error)
+      console.error("Error fetching PR comment analysis:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchComparisonAnalysis = async () => {
-    try {
-      const response = await fetch(`/api/github/pr-comment-analysis?teamId=${comparisonTeamId}`)
-      const data = await response.json()
-      setComparisonData(data.quarterlyCommentAnalysis || [])
-    } catch (error) {
-      console.error("Error fetching comparison analysis:", error)
-    }
-  }
+  useEffect(() => {
+    fetchAllTeamMembersUserName()
+  }, [teamId])
+
+
+
+
+
 
   const getChartData = () => {
     const map = new Map()
@@ -125,17 +113,27 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        {/* <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Comments </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchCommentAnalysis}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.totalComments, 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">All quarters</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        <Card>
+        {/* <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">By Team Members </CardTitle>
           </CardHeader>
@@ -150,9 +148,9 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
               % of total
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        <Card>
+        {/* <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">By External </CardTitle>
           </CardHeader>
@@ -167,21 +165,21 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
               % of total
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Total PRs </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.prCount, 0)}</div>
+            <div className="text-2xl font-bold">{totalPrs}</div>
             <p className="text-xs text-muted-foreground mt-1">All quarters</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Graph Selection and Display */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -279,10 +277,10 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
             </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* PRs with Comment Breakdown */}
-      <Card>
+      {/* <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>PR Comment Breakdown</CardTitle>
@@ -296,43 +294,45 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
           <CardContent>
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {prComments.length > 0 ? (
-                prComments.map((item) => (
-                  <div key={item.id} className="p-4 border rounded-lg hover:bg-muted/50 transition">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <a
-                          href={item.pull_requests?.pr_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline font-medium"
-                        >
-                          #{item.pull_requests?.pr_number}: {item.pull_requests?.pr_title}
-                        </a>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {new Date(item.pull_requests?.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <div className="text-sm">
-                          <span className="font-medium text-blue-600">{item.team_member_comments}</span>
-                          <span className="text-muted-foreground"> team member</span>
+                <div className="space-y-3">
+                  {prComments.map((item) => (
+                    <div key={item.id} className="p-4 border rounded-lg hover:bg-muted/50 transition">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <a
+                            href={item.html_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline font-medium"
+                          >
+                            #{item.number}: {item.title}
+                          </a>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {new Date(item.created_at).toLocaleDateString()} • by {item.author}
+                          </p>
                         </div>
-                        <div className="text-sm">
-                          <span className="font-medium text-red-600">{item.external_comments}</span>
-                          <span className="text-muted-foreground"> external</span>
+                        <div className="text-right space-y-1">
+                          <div className="text-sm">
+                            <span className="font-medium text-blue-600">{item.team_member_comments}</span>
+                            <span className="text-muted-foreground"> team member</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="font-medium text-red-600">{item.external_comments}</span>
+                            <span className="text-muted-foreground"> external</span>
+                          </div>
+                          <div className="text-sm font-medium">{item.total_comments} total</div>
                         </div>
-                        <div className="text-sm font-medium">{item.total_comments} total</div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
                 <p className="text-center text-muted-foreground py-8">No PR data available</p>
               )}
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card> */}
     </div>
   )
 }

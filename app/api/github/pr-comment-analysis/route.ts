@@ -1,43 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const teamId = request.nextUrl.searchParams.get("teamId");
-    const comparisonTeamId =
-      request.nextUrl.searchParams.get("comparisonTeamId");
-
-    if (!teamId) {
-      return NextResponse.json(
-        { error: "teamId is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = await createClient();
-
-    // Fetch all team members for the main team
-    const allTeamMembersResponse = await supabase
-      .from("team_members")
-      .select(
-        `github_users (
-          github_username
-        )`
-      )
-      .eq("team_id", teamId);
-
-    if (allTeamMembersResponse.error) throw allTeamMembersResponse.error;
-    const teamMemberUsernames = allTeamMembersResponse.data.map((m) => m.github_users?.github_username);
-    console.log("Team Member Usernames:", teamMemberUsernames);
-
-    // Fetch PR for the main team
-    
-
-
+    // This endpoint is deprecated as we now handle PR comment analysis client-side
+    // using direct GitHub API calls in the PRCommentAnalysis component
     return NextResponse.json({
-      // quarterlyCommentAnalysis,
-      // comparisonAnalysis,
-      // prComments: prComments || [],
+      message: "This endpoint is deprecated. PR comment analysis is now handled client-side.",
+      quarterlyCommentAnalysis: [],
+      comparisonAnalysis: [],
+      prComments: [],
     });
   } catch (error) {
     console.error("Error getting PR comment analysis:", error);
