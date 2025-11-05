@@ -58,7 +58,7 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
   const fetchCommentAnalysis = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/github/fetch-prs?teamId=${teamId}&&orgName=hy-vee&token=${process.env.NEXT_PUBLIC_GITHUB_TOKEN}`)
+      const response = await fetch(`/api/github/fetch-prs?teamId=${teamId}&orgName=hy-vee`)
       const data = await response.json()
       setQuarterlyData(data.quarterlyCommentAnalysis || [])
       setPRComments(data.prComments || [])
@@ -127,7 +127,7 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Comments  </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Comments </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.totalComments, 0)}</div>
@@ -137,7 +137,7 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">By Team Members  </CardTitle>
+            <CardTitle className="text-sm font-medium">By Team Members </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0)}</div>
@@ -154,7 +154,7 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">By External  </CardTitle>
+            <CardTitle className="text-sm font-medium">By External </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.externalComments, 0)}</div>
@@ -171,7 +171,7 @@ export function PRCommentAnalysis({ teamId, teamName, comparisonTeamId, comparis
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total PRs  </CardTitle>
+            <CardTitle className="text-sm font-medium">Total PRs </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quarterlyData.reduce((sum, q) => sum + q.prCount, 0)}</div>
