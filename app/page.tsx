@@ -8,6 +8,8 @@ import { Loader2 } from "lucide-react"
 import { PRCommentAnalysis } from "@/components/pr-comment-analysis"
 import { TeamDevelopersSection } from "@/components/team-developers-section"
 import { createClient } from "@/lib/supabase/client"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { useGithub } from "@/lib/context/githubData"
 
 interface Team {
   id: string
@@ -20,10 +22,18 @@ export default function Dashboard() {
   const [comparisonTeam, setComparisonTeam] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const {fetchAllUserName, teamMetrics} = useGithub();
+  console.log("teamMetrics:", teamMetrics);
 
   useEffect(() => {
     fetchTeams()
   }, [])
+
+  useEffect(() => {
+    if (selectedTeam) {
+      fetchAllUserName(selectedTeam);
+    }
+  }, [selectedTeam]);
 
   const fetchTeams = async () => {
     try {
@@ -45,31 +55,14 @@ export default function Dashboard() {
   }
 
   const handleSyncComments = async () => {
-    if (!selectedTeam) return
-
-    const token = prompt("Enter your GitHub Personal Access Token:")
-    if (!token) return
-
+    if (!selectedTeam) return 
     try {
-      setSyncing(true)
-      const response = await fetch("/api/github/fetch-pr-comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: selectedTeam,
-          token,
-          org: "Digital",
-          repo: "my-pharmacy", // Update this based on your repo
-        }),
-      })
-
-      const data = await response.json()
-      alert(`Synced ${data.commentsCount} comments from ${data.analysisCount} PRs`)
-    } catch (error) {
+      setSyncing(true);
+      fetchTeams();
+    }catch (error) {
       console.error("Error syncing comments:", error)
-      alert("Failed to sync PR comments")
     } finally {
-      setSyncing(false)
+      setSyncing(false);
     }
   }
 
@@ -84,11 +77,7 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Developer Performance Metrics</h1>
-          <p className="text-muted-foreground">GitHub PR Analysis by Team with Comment Source Breakdown</p>
-        </div>
-
+        <DashboardHeader title={"Hy-vee activity tracker"} onExport={()=>{}}/>
         {/* Team Selection */}
         <Card className="mb-8">
           <CardHeader>
@@ -144,7 +133,6 @@ export default function Dashboard() {
         {selectedTeam && (
           <div className="mb-12">
             <TeamDevelopersSection
-              teamId={selectedTeam}
               teamName={teams.find((t) => t.id === selectedTeam)?.name || ""}
             />
           </div>

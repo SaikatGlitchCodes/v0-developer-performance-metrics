@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
+import { BoringAvatar } from "@/components/ui/avatar"
 
 interface Developer {
   id: string
@@ -173,10 +174,11 @@ export default function EngineerProfilePage() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-6">
               {developer.avatar_url && (
-                <img
-                  src={"https://avatars.githubusercontent.com/u/627410?v=4&size=80"}
-                  alt={developer.display_name}
-                  className="w-24 h-24 rounded-full border-4 border-primary"
+                <BoringAvatar
+                  name={developer.github_username}
+                  size={96}
+                  variant="beam"
+                  className="w-24 h-24 border-4 border-primary"
                 />
               )}
               <div>
@@ -238,7 +240,7 @@ export default function EngineerProfilePage() {
                 <div className="text-2xl font-bold">{currentMetrics?.merge_rate.toFixed(1) || 0}%</div>
                 <p className={`text-xs mt-2 ${Number(mergeRateChange) >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {Number(mergeRateChange) >= 0 ? "+" : ""}
-                  {mergeRateChange.toFixed(1)}% from last quarter
+                  {Number(mergeRateChange).toFixed(1)}% from last quarter
                 </p>
               </CardContent>
             </Card>

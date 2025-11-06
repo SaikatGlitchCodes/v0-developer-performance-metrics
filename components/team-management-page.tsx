@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, Plus, Trash2, RefreshCw } from "lucide-react";
+import { BoringAvatar } from "@/components/ui/avatar";
 
 interface Team {
   id: string;
@@ -440,10 +441,11 @@ export function TeamManagementPage() {
                           >
                             <div className="flex items-center gap-3">
                               {member?.github_user?.avatar_url && (
-                                <img
-                                  src={"https://avatars.githubusercontent.com/u/627410?v=4&size=80"}
-                                  alt={member.github_user?.display_name}
-                                  className="w-8 h-8 rounded-full"
+                                <BoringAvatar
+                                  name={member.github_user?.github_username || ""}
+                                  size={32}
+                                  variant="beam"
+                                  className="w-8 h-8"
                                 />
                               )}
                               <div>
@@ -456,7 +458,6 @@ export function TeamManagementPage() {
                               </div>
                             </div>
                             <Button
-                              variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveUser(member.id)}
                               disabled={loading}

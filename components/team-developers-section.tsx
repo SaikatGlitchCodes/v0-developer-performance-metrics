@@ -1,38 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { DeveloperPerformanceCard } from "./developer-performance-card"
 import { Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { useGithub } from "@/lib/context/githubData"
 
 interface TeamDevelopersSectionProps {
-  teamId: string
-  teamName: string
+  teamName: string  
 }
 
-export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectionProps) {
-  const [developers, setDevelopers] = useState([])
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDeveloperMetrics()
-  }, [teamId])
-
-  const fetchDeveloperMetrics = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/team-management/team-members?teamId=${teamId}`)
-      const data = await response.json()
-      if (data.team_members.length > 0) {
-        setDevelopers(data.team_members)
-      }
-    } catch (error) {
-      console.error("Error fetching developer metrics:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-  if (loading) {
+export function TeamDevelopersSection({  teamName }: TeamDevelopersSectionProps) {
+  const {teamMetrics, loading: githubLoading} = useGithub();
+  if (githubLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -42,7 +21,7 @@ export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectio
     )
   }
 
-  if (!developers || developers.length === 0) {
+  if (!teamMetrics || teamMetrics.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
@@ -60,8 +39,8 @@ export function TeamDevelopersSection({ teamId, teamName }: TeamDevelopersSectio
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {developers.map((dev: any) => (
-          <DeveloperPerformanceCard key={dev.github_user_id} developer={dev} />
+        {teamMetrics.map((dev:any) => (
+          <DeveloperPerformanceCard key={dev.member} developer={dev} />
         ))}
       </div>
     </div>
