@@ -18,8 +18,9 @@ import {
   Cell,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Loader2, GitPullRequest, MessageSquare, Users, ExternalLink } from "lucide-react"
+import { Loader2, GitPullRequest, MessageSquare, Users, ExternalLink, Download } from "lucide-react"
 import { useGithub } from "@/lib/context/githubData"
+import { exportTeamData } from "@/lib/export-utils"
 
 export function PRCommentAnalysis({ 
   teamId, 
@@ -164,6 +165,31 @@ export function PRCommentAnalysis({
           }));
         });
     }
+  }
+
+  const handleExportQuarterlyData = () => {
+    if (!quarterlyData.length || !teamMembersName.length) {
+      alert('No quarterly data available to export.');
+      return;
+    }
+
+    const quarterlyMetrics = [];
+    quarterlyData.forEach(quarter => {
+      quarter.metrics?.forEach(metric => {
+        quarterlyMetrics.push({
+          ...metric,
+          quarter: quarter.quarter
+        });
+      });
+    });
+
+    exportTeamData(
+      teamName,
+      teamMembersName,
+      quarterlyMetrics,
+      quarterlyData,
+      'markdown'
+    );
   }
 
   // Chart data preparation
@@ -335,6 +361,15 @@ export function PRCommentAnalysis({
                 onClick={() => setSelectedGraph("pie")}
               >
                 Distribution
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportQuarterlyData}
+                className="ml-2"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Export Data
               </Button>
             </div>
           </div>
