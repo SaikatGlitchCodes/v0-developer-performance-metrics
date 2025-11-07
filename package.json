@@ -41,6 +41,7 @@
     "@reduxjs/toolkit": "^2.10.1",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@types/xlsx": "^0.0.36",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "axios": "^1.13.2",
@@ -66,6 +67,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "xlsx": "^0.18.5",
     "zod": "3.25.76"
   },
   "devDependencies": {

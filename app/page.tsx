@@ -20,14 +20,18 @@ interface Team {
 export default function Dashboard() {
   const [teams, setTeams] = useState<Team[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>("")
-  const [comparisonTeam, setComparisonTeam] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [exportFormat, setExportFormat] = useState<'markdown' | 'csv' | 'json'>('markdown')
+  const [exportFormat, setExportFormat] = useState<'markdown' | 'csv' | 'json' | 'excel'>('excel')
   const {fetchAllUserName, teamMetrics, teamMembersName, fetchQuarterlyMetrics} = useGithub();
   console.log("teamMetrics:", teamMetrics);
 
   useEffect(() => {
+    // Initialize selectedTeam from localStorage after component mounts
+    const savedTeam = localStorage.getItem('selectedTeam')
+    if (savedTeam) {
+      setSelectedTeam(savedTeam)
+    }
     fetchTeams()
   }, [])
 
@@ -46,7 +50,10 @@ export default function Dashboard() {
       if (error) throw error
 
       setTeams(data || [])
-      if (data && data.length > 0) {
+      
+      // Only set default team if no team is currently selected and localStorage doesn't have a saved team
+      const savedTeam = localStorage.getItem('selectedTeam')
+      if (data && data.length > 0 && !selectedTeam && !savedTeam) {
         setSelectedTeam(data[0].id)
       }
     } catch (error) {
@@ -112,25 +119,6 @@ export default function Dashboard() {
     <main className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <DashboardHeader title={"Hy-vee activity tracker"} onExport={handleExport}/>
-        
-        {/* Export Format Selection */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-medium">Export Format:</label>
-              <Select value={exportFormat} onValueChange={(value: 'markdown' | 'csv' | 'json') => setExportFormat(value)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="markdown">Markdown (.md)</SelectItem>
-                  <SelectItem value="csv">CSV (.csv)</SelectItem>
-                  <SelectItem value="json">JSON (.json)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Team Selection */}
         <Card className="mb-8">
@@ -139,31 +127,14 @@ export default function Dashboard() {
             <CardDescription>Choose your team and optionally compare with another team</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex justify-between gap-4">
               <div>
                 <label className="text-sm font-medium">Your Team</label>
-                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <Select value={selectedTeam} onValueChange={(value) => { setSelectedTeam(value); localStorage.setItem('selectedTeam', value); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select team" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Reviewers (Optional)</label>
-                <Select value={comparisonTeam} onValueChange={setComparisonTeam}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select comparison team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
@@ -197,7 +168,6 @@ export default function Dashboard() {
           <PRCommentAnalysis
             teamId={selectedTeam}
             teamName={teams.find((t) => t.id === selectedTeam)?.name || ""}
-            comparisonTeamName={teams.find((t) => t.id === comparisonTeam)?.name}
           />
         )}
       </div>

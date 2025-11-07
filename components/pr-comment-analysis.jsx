@@ -25,7 +25,6 @@ import { exportTeamData } from "@/lib/export-utils"
 export function PRCommentAnalysis({ 
   teamId, 
   teamName, 
-  comparisonTeamName,
 }) {
   const { teamMembersName, teamMetrics, fetchQuarterlyMetrics } = useGithub();
   const totalNumberPRs = teamMetrics?.reduce((sum, tm) => sum + (tm ? tm.prCount : 0), 0) || 0;
@@ -188,7 +187,7 @@ export function PRCommentAnalysis({
       teamMembersName,
       quarterlyMetrics,
       quarterlyData,
-      'markdown'
+      'excel'
     );
   }
 
@@ -209,8 +208,6 @@ export function PRCommentAnalysis({
         const existing = map.get(q.quarter) || { quarter: q.quarter }
         map.set(q.quarter, {
           ...existing,
-          [`${comparisonTeamName} - Team Members`]: q.teamMemberComments,
-          [`${comparisonTeamName} - External`]: q.externalComments,
         })
       })
     }
@@ -336,8 +333,7 @@ export function PRCommentAnalysis({
             <div>
               <CardTitle>Comment Source Analysis</CardTitle>
               <CardDescription>
-                Team Member vs External comments on PRs ({teamName}
-                {comparisonTeamName ? ` vs ${comparisonTeamName}` : ""})
+                Team Member vs External comments on PRs ({teamName})
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -421,12 +417,6 @@ export function PRCommentAnalysis({
                     <Legend />
                     <Bar dataKey={`${teamName} - Team Members`} fill={COLORS[0]} />
                     <Bar dataKey={`${teamName} - External`} fill={COLORS[1]} />
-                    {comparisonTeamName && (
-                      <>
-                        <Bar dataKey={`${comparisonTeamName} - Team Members`} fill={COLORS[2]} />
-                        <Bar dataKey={`${comparisonTeamName} - External`} fill={COLORS[3]} />
-                      </>
-                    )}
                   </BarChart>
                 ) : (
                   <LineChart data={getChartData()}>
@@ -437,12 +427,6 @@ export function PRCommentAnalysis({
                     <Legend />
                     <Line type="monotone" dataKey={`${teamName} - Team Members`} stroke={COLORS[0]} strokeWidth={2} />
                     <Line type="monotone" dataKey={`${teamName} - External`} stroke={COLORS[1]} strokeWidth={2} />
-                    {comparisonTeamName && (
-                      <>
-                        <Line type="monotone" dataKey={`${comparisonTeamName} - Team Members`} stroke={COLORS[2]} strokeWidth={2} />
-                        <Line type="monotone" dataKey={`${comparisonTeamName} - External`} stroke={COLORS[3]} strokeWidth={2} />
-                      </>
-                    )}
                   </LineChart>
                 )}
               </ResponsiveContainer>

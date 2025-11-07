@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx';
+
 interface TeamMember {
   member: string;
   prCount: number;
@@ -37,6 +39,20 @@ export function exportToJSON(data: ExportData): void {
 export function exportToMarkdown(data: ExportData): void {
   const markdownContent = generateMarkdownContent(data);
   downloadFile(markdownContent, `${data.teamName}_performance_report_${data.exportDate}.md`, 'text/markdown');
+}
+
+export function exportToExcel(data: ExportData): void {
+  const workbook = generateExcelWorkbook(data);
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${data.teamName}_performance_report_${data.exportDate}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 function generateCSVContent(data: ExportData): string {
@@ -161,6 +177,111 @@ function generateMarkdownContent(data: ExportData): string {
   return markdown;
 }
 
+function generateExcelWorkbook(data: ExportData): XLSX.WorkBook {
+  const workbook = XLSX.utils.book_new();
+
+  // Calculate team totals
+  const teamTotals = {
+    totalPRs: data.teamMetrics.reduce((sum, m) => sum + m.prCount, 0),
+    totalMergedPRs: data.teamMetrics.reduce((sum, m) => sum + m.mergedPRs, 0),
+    totalTeamComments: data.teamMetrics.reduce((sum, m) => sum + m.teamCommentsCount, 0),
+    totalExternalComments: data.teamMetrics.reduce((sum, m) => sum + m.otherCommentsCount, 0)
+  };
+
+  const averageMergeRate = data.teamMetrics.length > 0 
+    ? (data.teamMetrics.reduce((sum, m) => sum + m.mergeRate, 0) / data.teamMetrics.length).toFixed(1)
+    : '0';
+
+  // Team Summary Sheet
+  const summaryData = [
+    ['Team Performance Report'],
+    [''],
+    ['Team Name', data.teamName],
+    ['Report Generated', new Date(data.exportDate).toLocaleDateString()],
+    ['Period', data.period],
+    ['Team Members', data.teamMembers.length],
+    [''],
+    ['Team Summary'],
+    ['Metric', 'Value'],
+    ['Total PRs', teamTotals.totalPRs],
+    ['Merged PRs', teamTotals.totalMergedPRs],
+    ['Average Merge Rate (%)', averageMergeRate],
+    ['Team Comments', teamTotals.totalTeamComments],
+    ['External Comments', teamTotals.totalExternalComments],
+    ['Total Comments', teamTotals.totalTeamComments + teamTotals.totalExternalComments]
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+  // Individual Performance Sheet
+  const performanceData = [
+    ['Member', 'Total PRs', 'Merged PRs', 'Merge Rate (%)', 'Average Comments', 'Team Comments', 'External Comments', 'Total Comments', 'Team Comment Ratio (%)', 'External Comment Ratio (%)'],
+    ...data.teamMetrics.map(member => {
+      const totalComments = member.teamCommentsCount + member.otherCommentsCount;
+      const teamCommentRatio = totalComments > 0 ? ((member.teamCommentsCount / totalComments) * 100).toFixed(1) : '0';
+      const externalCommentRatio = totalComments > 0 ? ((member.otherCommentsCount / totalComments) * 100).toFixed(1) : '0';
+      
+      return [
+        member.member,
+        member.prCount,
+        member.mergedPRs,
+        member.mergeRate,
+        member.averageComments,
+        member.teamCommentsCount,
+        member.otherCommentsCount,
+        totalComments,
+        teamCommentRatio,
+        externalCommentRatio
+      ];
+    })
+  ];
+
+  const performanceSheet = XLSX.utils.aoa_to_sheet(performanceData);
+  XLSX.utils.book_append_sheet(workbook, performanceSheet, 'Individual Performance');
+
+  // Quarterly Data Sheet (if available)
+  if (data.quarterlyData && data.quarterlyData.length > 0) {
+    const quarterlyData = [
+      ['Quarter', 'Total PRs', 'Team Comments', 'External Comments', 'Total Comments'],
+      ...data.quarterlyData.map(quarter => [
+        quarter.quarter,
+        quarter.totalPRs,
+        quarter.teamMemberComments,
+        quarter.externalComments,
+        quarter.totalComments
+      ])
+    ];
+
+    const quarterlySheet = XLSX.utils.aoa_to_sheet(quarterlyData);
+    XLSX.utils.book_append_sheet(workbook, quarterlySheet, 'Quarterly Trends');
+  }
+
+  // PR Details Sheet
+  const prDetailsData = [
+    ['Member', 'PR Number', 'PR Title', 'Status', 'Created Date', 'PR URL']
+  ];
+
+  data.teamMetrics.forEach(member => {
+    member.repos.forEach(pr => {
+      const status = pr.pull_request?.merged_at ? 'Merged' : pr.state === 'open' ? 'Open' : 'Closed';
+      prDetailsData.push([
+        member.member,
+        pr.number,
+        pr.title,
+        status,
+        new Date(pr.created_at).toLocaleDateString(),
+        pr.html_url
+      ]);
+    });
+  });
+
+  const prDetailsSheet = XLSX.utils.aoa_to_sheet(prDetailsData);
+  XLSX.utils.book_append_sheet(workbook, prDetailsSheet, 'PR Details');
+
+  return workbook;
+}
+
 function downloadFile(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
   const url = window.URL.createObjectURL(blob);
@@ -178,7 +299,7 @@ export function exportTeamData(
   teamMembers: string[],
   teamMetrics: TeamMember[],
   quarterlyData?: any[],
-  format: 'csv' | 'json' | 'markdown' = 'markdown'
+  format: 'csv' | 'json' | 'markdown' | 'excel' = 'excel'
 ): void {
   const exportData: ExportData = {
     teamName,
@@ -197,8 +318,11 @@ export function exportTeamData(
       exportToJSON(exportData);
       break;
     case 'markdown':
-    default:
       exportToMarkdown(exportData);
+      break;
+    case 'excel':
+    default:
+      exportToExcel(exportData);
       break;
   }
 }
