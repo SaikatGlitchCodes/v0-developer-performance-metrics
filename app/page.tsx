@@ -10,6 +10,7 @@ import { TeamDevelopersSection } from "@/components/team-developers-section"
 import { createClient } from "@/lib/supabase/client"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useGithub } from "@/lib/context/githubData"
+import { exportTeamData } from "@/lib/export-utils"
 
 interface Team {
   id: string
@@ -22,7 +23,8 @@ export default function Dashboard() {
   const [comparisonTeam, setComparisonTeam] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const {fetchAllUserName, teamMetrics} = useGithub();
+  const [exportFormat, setExportFormat] = useState<'markdown' | 'csv' | 'json'>('markdown')
+  const {fetchAllUserName, teamMetrics, teamMembersName, fetchQuarterlyMetrics} = useGithub();
   console.log("teamMetrics:", teamMetrics);
 
   useEffect(() => {
@@ -66,6 +68,38 @@ export default function Dashboard() {
     }
   }
 
+  const handleExport = async () => {
+    if (!selectedTeam || !teamMetrics.length || !teamMembersName.length) {
+      alert('Please select a team and wait for data to load before exporting.');
+      return;
+    }
+
+    try {
+      const teamName = teams.find((t) => t.id === selectedTeam)?.name || 'Unknown Team';
+      
+      // Fetch quarterly data for comprehensive report
+      let quarterlyData = [];
+      if (fetchQuarterlyMetrics) {
+        try {
+          quarterlyData = await fetchQuarterlyMetrics(4);
+        } catch (error) {
+          console.warn('Could not fetch quarterly data for export:', error);
+        }
+      }
+
+      exportTeamData(
+        teamName,
+        teamMembersName,
+        teamMetrics,
+        quarterlyData,
+        exportFormat
+      );
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
@@ -77,7 +111,27 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <DashboardHeader title={"Hy-vee activity tracker"} onExport={()=>{}}/>
+        <DashboardHeader title={"Hy-vee activity tracker"} onExport={handleExport}/>
+        
+        {/* Export Format Selection */}
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Export Format:</label>
+              <Select value={exportFormat} onValueChange={(value: 'markdown' | 'csv' | 'json') => setExportFormat(value)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="markdown">Markdown (.md)</SelectItem>
+                  <SelectItem value="csv">CSV (.csv)</SelectItem>
+                  <SelectItem value="json">JSON (.json)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Team Selection */}
         <Card className="mb-8">
           <CardHeader>
@@ -143,7 +197,6 @@ export default function Dashboard() {
           <PRCommentAnalysis
             teamId={selectedTeam}
             teamName={teams.find((t) => t.id === selectedTeam)?.name || ""}
-            comparisonTeamId={comparisonTeam}
             comparisonTeamName={teams.find((t) => t.id === comparisonTeam)?.name}
           />
         )}
