@@ -215,6 +215,14 @@ export function PRCommentAnalysis({
     return Array.from(map.values()).sort((a, b) => b.quarter.localeCompare(a.quarter))
   }
 
+  const getPRChartData = () => {
+    return quarterlyData.map((q) => ({
+      quarter: q.quarter,
+      [`${teamName} - PRs Raised`]: q.totalPRs,
+      [`${teamName} - PRs Merged`]: q.metrics?.reduce((sum, m) => sum + (m.mergedPRs || 0), 0) || 0,
+    })).sort((a, b) => b.quarter.localeCompare(a.quarter))
+  }
+
   const getPieData = () => {
     const totals = quarterlyData.reduce(
       (acc, q) => ({
@@ -278,12 +286,22 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Total Comments
+              {selectedGraph === "prs" ? "Merged PRs" : "Total Comments"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalComments}</div>
-            <p className="text-xs text-muted-foreground mt-1">All quarterly PR comments</p>
+            <div className="text-2xl font-bold">
+              {selectedGraph === "prs" 
+                ? quarterlyData.reduce((sum, q) => sum + (q.metrics?.reduce((mSum, m) => mSum + (m.mergedPRs || 0), 0) || 0), 0)
+                : totalComments
+              }
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedGraph === "prs" 
+                ? `${totalPRs > 0 ? ((quarterlyData.reduce((sum, q) => sum + (q.metrics?.reduce((mSum, m) => mSum + (m.mergedPRs || 0), 0) || 0), 0) / totalPRs) * 100).toFixed(1) : 0}% merge rate`
+                : "All quarterly PR comments"
+              }
+            </p>
           </CardContent>
         </Card>
 
@@ -291,17 +309,21 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="w-4 h-4" />
-              By Team Members
+              {selectedGraph === "prs" ? "Avg PRs per Quarter" : "By Team Members"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0)}
+              {selectedGraph === "prs" 
+                ? Math.round(totalPRs / Math.max(quarterlyData.length, 1))
+                : quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0)
+              }
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {totalComments > 0 ? (
-                (quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0) / totalComments * 100).toFixed(1)
-              ) : 0}% of total
+              {selectedGraph === "prs" 
+                ? "Average per quarter"
+                : `${totalComments > 0 ? (quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0) / totalComments * 100).toFixed(1) : 0}% of total`
+              }
             </p>
           </CardContent>
         </Card>
@@ -310,17 +332,21 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ExternalLink className="w-4 h-4" />
-              By External
+              {selectedGraph === "prs" ? "Total Team Members" : "By External"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {quarterlyData.reduce((sum, q) => sum + q.externalComments, 0)}
+              {selectedGraph === "prs" 
+                ? teamMembersName.length
+                : quarterlyData.reduce((sum, q) => sum + q.externalComments, 0)
+              }
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {totalComments > 0 ? (
-                (quarterlyData.reduce((sum, q) => sum + q.externalComments, 0) / totalComments * 100).toFixed(1)
-              ) : 0}% of total
+              {selectedGraph === "prs" 
+                ? "Contributing to PRs"
+                : `${totalComments > 0 ? (quarterlyData.reduce((sum, q) => sum + q.externalComments, 0) / totalComments * 100).toFixed(1) : 0}% of total`
+              }
             </p>
           </CardContent>
         </Card>
@@ -331,9 +357,14 @@ export function PRCommentAnalysis({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Comment Source Analysis</CardTitle>
+              <CardTitle>
+                {selectedGraph === "prs" ? "PR Timeline Analysis" : "Comment Source Analysis"}
+              </CardTitle>
               <CardDescription>
-                Team Member vs External comments on PRs ({teamName})
+                {selectedGraph === "prs" 
+                  ? `PRs raised and merged over time by ${teamName}`
+                  : `Team Member vs External comments on PRs (${teamName})`
+                }
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -342,21 +373,28 @@ export function PRCommentAnalysis({
                 size="sm"
                 onClick={() => setSelectedGraph("total")}
               >
-                Trend
+                Comments Trend
               </Button>
               <Button
                 variant={selectedGraph === "split" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedGraph("split")}
               >
-                Split View
+                Comments Split
               </Button>
               <Button
                 variant={selectedGraph === "pie" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedGraph("pie")}
               >
-                Distribution
+                Comments Distribution
+              </Button>
+              <Button
+                variant={selectedGraph === "prs" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedGraph("prs")}
+              >
+                PRs Timeline
               </Button>
               <Button
                 variant="outline"
@@ -385,6 +423,14 @@ export function PRCommentAnalysis({
                 external: {
                   label: "External",
                   color: "hsl(var(--chart-2))",
+                },
+                prsRaised: {
+                  label: "PRs Raised",
+                  color: "hsl(var(--chart-1))",
+                },
+                prsMerged: {
+                  label: "PRs Merged",
+                  color: "hsl(var(--chart-3))",
                 },
               }}
               className="h-[400px]"
@@ -417,6 +463,16 @@ export function PRCommentAnalysis({
                     <Legend />
                     <Bar dataKey={`${teamName} - Team Members`} fill={COLORS[0]} />
                     <Bar dataKey={`${teamName} - External`} fill={COLORS[1]} />
+                  </BarChart>
+                ) : selectedGraph === "prs" ? (
+                  <BarChart data={getPRChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="quarter" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey={`${teamName} - PRs Raised`} fill={COLORS[0]} />
+                    <Bar dataKey={`${teamName} - PRs Merged`} fill={COLORS[2]} />
                   </BarChart>
                 ) : (
                   <LineChart data={getChartData()}>
