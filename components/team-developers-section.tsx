@@ -4,6 +4,7 @@ import { DeveloperPerformanceCard } from "./developer-performance-card"
 import { Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGithub } from "@/lib/context/githubData"
+import { TopPerformersCard } from "./top-performers-card"
 
 interface TeamDevelopersSectionProps {
   teamName: string  
@@ -42,6 +43,7 @@ export function TeamDevelopersSection({  teamName }: TeamDevelopersSectionProps)
         {teamMetrics.map((dev:any) => (
           <DeveloperPerformanceCard key={dev.member} developer={dev} />
         ))}
+        <TopPerformersCard />
       </div>
     </div>
   )
