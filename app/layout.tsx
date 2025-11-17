@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <GithubProvider token="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">
+      <GithubProvider token={process.env.NEXT_PUBLIC_GITHUB_TOKEN}>
         <body className={`font-sans antialiased`}>
           {children}
           <Analytics />
