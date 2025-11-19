@@ -1,7 +1,17 @@
 "use client";
 
-import { ArrowBigRight, ArrowRight, ArrowRightIcon, Download, Settings } from "lucide-react";
+import axios from "axios";
+import {
+  ArrowBigRight,
+  ArrowRight,
+  ArrowRightIcon,
+  CircleAlert,
+  CircleDashedIcon,
+  Download,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface DashboardHeaderProps {
   title: string;
@@ -14,6 +24,25 @@ export function DashboardHeader({
   onExport,
   onSettings,
 }: DashboardHeaderProps) {
+  const [status, setStatus] = useState('red');
+  useEffect(() => {
+    checkServer();
+  }, []);
+
+  const checkServer = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/health');
+      if (response.status === 200) {
+        setStatus('green');
+      } else {
+        setStatus('red');
+      }
+
+    }catch (error) {
+      setStatus('red');
+    }
+  }
+
   return (
     <div className="mb-8">
       <div className="flex justify-between">
@@ -23,7 +52,13 @@ export function DashboardHeader({
             Team-wise developer performance insights
           </p>
         </div>
-        <Link href="/admin" className="flex items-center"><p >Admin </p><ArrowRightIcon size={18} className="" /></Link> 
+        <div>
+          <Link href="/admin" className="flex items-center">
+            <p>Admin </p>
+            <ArrowRightIcon size={18} className="" />
+          </Link>
+          <div className="flex items-center gap-x-2"><div className={`h-2 w-2 bg-${status}-400 rounded-full animate-pulse`}></div> <p className="text-sm">{status === 'green' ? 'online' : 'offline'}</p></div>  
+        </div>
       </div>
 
       <div className="flex gap-3">
