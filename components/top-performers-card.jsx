@@ -3,59 +3,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoringAvatar } from "@/components/ui/avatar";
-import { Trophy, Medal, Award, TrendingUp, GitPullRequest, MessageSquare } from "lucide-react";
-import { useGithub } from "@/lib/context/githubData";
+import { Trophy, Medal, Award, TrendingUp } from "lucide-react";
 
-interface DeveloperMetric {
-  member: string;
-  prCount: number;
-  mergedPRs: number;
-  mergeRate: number;
-  repos: any[];
-  averageComments: number;
-  issueComments: any[];
-  reviewComments: any[];
-  teamIssueComments: any[];
-  teamReviewComments: any[];
-  otherIssueComments: any[];
-  otherReviewComments: any[];
-  teamCommentsCount: number;
-  otherCommentsCount: number;
-}
+export function TopPerformersCard({ topPerformers, lastQuarterLoading }) {
+  console.log("topPerformers", topPerformers)
 
-interface RankedDeveloper extends DeveloperMetric {
-  performanceScore: number;
-}
-
-export function TopPerformersCard() {
-  const { teamMetrics, loading } = useGithub();
-
-  // Calculate performance score based on merge rate (positive) and average comments (negative - lower is better)
-  const calculatePerformanceScore = (developer: DeveloperMetric) => {
-    const { mergeRate, averageComments, prCount, mergedPRs } = developer;
-    
-    // Base metrics
-    const mergeRateScore = mergeRate; // 0-100, higher is better
-    
-    // Comment efficiency: Lower comments per PR = higher efficiency
-    // Using inverse relationship with a cap to prevent division by zero
-    const commentEfficiency = averageComments > 0 
-      ? Math.min(100, Math.max(0, 100 - (averageComments * 5))) 
-      : 100;
-    
-    // Activity score based on PR count with diminishing returns
-    const activityScore = Math.min(100, Math.sqrt(prCount) * 20);
-    
-    // Bonus for having any merged PRs
-    const consistencyBonus = mergedPRs > 0 ? 10 : 0;
-    
-    // Weighted score: 35% merge rate, 25% comment efficiency, 25% activity, 15% consistency
-    const weightedScore = (mergeRateScore * 0.35) + (commentEfficiency * 0.25) + (activityScore * 0.25) + (consistencyBonus * 0.15);
-    
-    return Math.round(weightedScore * 10) / 10; // Round to 1 decimal place
-  };
-
-  if (loading) {
+  if (lastQuarterLoading) {
     return (
       <Card className="overflow-hidden border border-border/50 h-full">
         <CardContent className="p-4 h-full flex flex-col">
@@ -83,11 +36,6 @@ export function TopPerformersCard() {
                       <div className="h-2 bg-secondary rounded w-1/2"></div>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="h-6 bg-secondary rounded"></div>
-                    <div className="h-6 bg-secondary rounded"></div>
-                    <div className="h-6 bg-secondary rounded"></div>
-                  </div>
                 </div>
               ))}
             </div>
@@ -104,7 +52,7 @@ export function TopPerformersCard() {
     );
   }
 
-  if (!teamMetrics || teamMetrics.length === 0) {
+  if (!topPerformers?.overall || !Array.isArray(topPerformers.overall) || topPerformers.overall.length === 0) {
     return (
       <Card className="overflow-hidden border border-border/50 h-full">
         <CardContent className="p-4 h-full flex flex-col">
@@ -136,16 +84,10 @@ export function TopPerformersCard() {
     );
   }
 
-  // Calculate scores and sort
-  const rankedDevelopers: RankedDeveloper[] = teamMetrics
-    .map((dev: DeveloperMetric) => ({
-      ...dev,
-      performanceScore: calculatePerformanceScore(dev)
-    }))
-    .sort((a: RankedDeveloper, b: RankedDeveloper) => b.performanceScore - a.performanceScore)
-    .slice(0, 3);
+  // Top performers are already sorted by performance score
+  const rankedDevelopers = Array.isArray(topPerformers.overall) ? topPerformers.overall.slice(0, 3) : [];
 
-  const getRankIcon = (rank: number) => {
+  const getRankIcon = (rank) => {
     switch (rank) {
       case 1: return <Trophy className="w-6 h-6 text-yellow-600" />;
       case 2: return <Medal className="w-6 h-6 text-gray-500" />;
@@ -154,7 +96,7 @@ export function TopPerformersCard() {
     }
   };
 
-  const getRankBadgeColor = (rank: number) => {
+  const getRankBadgeColor = (rank) => {
     switch (rank) {
       case 1: return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case 2: return "bg-gray-100 text-gray-800 border-gray-300";
@@ -179,13 +121,20 @@ export function TopPerformersCard() {
 
         {/* Performers list - flex-1 to fill remaining space */}
         <div className="space-y-3 flex-1">
-        {rankedDevelopers.length > 0 && rankedDevelopers.map((developer: RankedDeveloper, index: number) => {
+        {rankedDevelopers.length > 0 && rankedDevelopers.map((developer, index) => {
           const rank = index + 1;
-          const { member, mergeRate, averageComments, prCount, mergedPRs, performanceScore } = developer;
+          const { 
+            github_username, 
+            display_name, 
+            avatar_url, 
+            performanceScore, 
+            metrics 
+          } = developer;
+          const { totalPRs, mergedPRs, mergeRate, totalComments, engagementScore } = metrics;
           
           return (
             <div
-              key={member}
+              key={github_username}
               className={`p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer relative group ${
                 rank === 1 
                   ? "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200" 
@@ -193,26 +142,26 @@ export function TopPerformersCard() {
                   ? "bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200"
                   : "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200"
               }`}
-              title={`Merge Rate: ${mergeRate}% | Avg Comments: ${averageComments} | PRs: ${mergedPRs}/${prCount}`}
+              title={`Merge Rate: ${mergeRate.toFixed(2)}% | Engagement: ${engagementScore.toFixed(2)} | PRs: ${mergedPRs}/${totalPRs}`}
             >
               <div className="flex items-center gap-2">
                 <div className="flex-shrink-0">
                   {getRankIcon(rank)}
                 </div>
                 <BoringAvatar
-                  name={member}
+                  name={display_name || github_username}
                   size={24}
                   variant="beam"
                   colors={["#98D8C8", "#F7DC6F"]}
                   className="w-6 h-6"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-xs truncate">{member}</p>
+                  <p className="font-semibold text-xs truncate">{display_name || github_username}</p>
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${getRankBadgeColor(rank)}`}
                   >
-                    #{rank} • {performanceScore} pts
+                    #{rank} • {performanceScore.toFixed(2)} pts
                   </Badge>
                 </div>
               </div>
@@ -222,15 +171,19 @@ export function TopPerformersCard() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Merge Rate</span>
-                    <span className="font-semibold text-green-600">{mergeRate}%</span>
+                    <span className="font-semibold text-green-600">{mergeRate.toFixed(2)}%</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Avg Comments</span>
-                    <span className="font-semibold text-blue-600">{averageComments}</span>
+                    <span className="text-muted-foreground">Engagement</span>
+                    <span className="font-semibold text-blue-600">{engagementScore.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">PRs</span>
-                    <span className="font-semibold text-purple-600">{mergedPRs}/{prCount}</span>
+                    <span className="font-semibold text-purple-600">{mergedPRs}/{totalPRs}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Total Comments</span>
+                    <span className="font-semibold text-orange-600">{totalComments}</span>
                   </div>
                 </div>
               </div>

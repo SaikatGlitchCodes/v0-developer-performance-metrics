@@ -171,6 +171,7 @@ export function TeamManagementPage() {
       });
 
       const data = await res.json();
+      console.log('data', data)
       if (!res.ok) throw new Error(data.error);
 
       // Save users to database

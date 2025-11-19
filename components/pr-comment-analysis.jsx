@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   BarChart,
   Bar,
@@ -18,227 +19,132 @@ import {
   Cell,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Loader2, GitPullRequest, MessageSquare, Users, ExternalLink, Download } from "lucide-react"
-import { useGithub } from "@/lib/context/githubData"
-import { exportTeamData } from "@/lib/export-utils"
+import { Loader2, GitPullRequest, MessageSquare, Users, ExternalLink, Download, TrendingUp, Calendar } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 export function PRCommentAnalysis({ 
-  teamId, 
-  teamName, 
+  teamId,
+  compareTeamId = null
 }) {
-  const { teamMembersName, teamMetrics, fetchQuarterlyMetrics } = useGithub();
-  const totalNumberPRs = teamMetrics?.reduce((sum, tm) => sum + (tm ? tm.prCount : 0), 0) || 0;
-  const totalInternalComments = teamMetrics?.reduce((sum, tm) => sum + (tm ? tm.teamCommentsCount : 0), 0) || 0;
-  const totalExternalComments = teamMetrics?.reduce((sum, tm) => sum + (tm ? tm.otherCommentsCount : 0), 0) || 0;
-  const totalNumberComments = totalInternalComments + totalExternalComments;
-
-  // Local state for comparison data and UI state
-  const [state, setState] = useState({
-    comparisonQuarterlyData: [],
-    loading: false,
-    error: null,
-    quarterlyData: [],
-    totalPRs: 0,
-    totalComments: 0,
-    teamMembers: [],
-    prAnalyses: []
-  })
-  
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedGraph, setSelectedGraph] = useState("total")
-  const [showAllPRs, setShowAllPRs] = useState(false)
+  const [showTopCommenters, setShowTopCommenters] = useState(false)
 
-  // Real quarterly data loading effect
+  // Fetch data from backend
   useEffect(() => {
-    if (teamId && teamMembersName.length > 0 && fetchQuarterlyMetrics) {
-      setState(prev => ({ ...prev, loading: true, error: null }))
-      
-      fetchQuarterlyMetrics(4) // Fetch last 4 quarters
-        .then((quarterlyData) => {
-          // Generate PR analyses from the quarterly data
-          const prAnalyses = [];
-          quarterlyData.forEach(quarter => {
-            quarter.metrics?.forEach(metric => {
-              metric.repos?.forEach(pr => {
-                const teamMemberComments = (metric.teamIssueComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0) + (metric.teamReviewComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0);
-                
-                const externalComments = (metric.otherIssueComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0) + (metric.otherReviewComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0);
-
-                prAnalyses.push({
-                  pr,
-                  teamMemberComments,
-                  externalComments,
-                  totalComments: teamMemberComments + externalComments,
-                  quarter: quarter.quarter
-                });
-              });
-            });
-          });
-
-          const totalPRs = quarterlyData.reduce((sum, q) => sum + q.totalPRs, 0);
-          const totalComments = quarterlyData.reduce((sum, q) => sum + q.totalComments, 0);
-
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            quarterlyData,
-            totalPRs,
-            totalComments,
-            prAnalyses: prAnalyses.sort((a, b) => new Date(b.pr.created_at) - new Date(a.pr.created_at))
-          }));
-        })
-        .catch((error) => {
-          console.error('Error fetching quarterly data:', error);
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            error: error.message || 'Failed to fetch quarterly data'
-          }));
-        });
+    if (teamId) {
+      fetchAnalysisData()
     }
-  }, [teamId, teamMembersName, fetchQuarterlyMetrics]);
+  }, [teamId, compareTeamId, selectedYear])
 
-  // Get data from state
-  const { quarterlyData, totalPRs, totalComments, loading, error, prAnalyses } = state
-
-  // Refresh function
-  const handleRefresh = () => {
-    if (teamId && teamMembersName.length > 0 && fetchQuarterlyMetrics) {
-      setState(prev => ({ ...prev, loading: true, error: null }))
+  const fetchAnalysisData = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const url = compareTeamId 
+        ? `http://localhost:4000/prs/comment-analysis/${teamId}?compareTeamId=${compareTeamId}&year=${selectedYear}`
+        : `http://localhost:4000/prs/comment-analysis/${teamId}?year=${selectedYear}`
       
-      fetchQuarterlyMetrics(4) // Fetch last 4 quarters
-        .then((quarterlyData) => {
-          // Generate PR analyses from the quarterly data
-          const prAnalyses = [];
-          quarterlyData.forEach(quarter => {
-            quarter.metrics?.forEach(metric => {
-              metric.repos?.forEach(pr => {
-                const teamMemberComments = (metric.teamIssueComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0) + (metric.teamReviewComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0);
-                
-                const externalComments = (metric.otherIssueComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0) + (metric.otherReviewComments?.filter(c => 
-                  c.html_url?.includes(`/pull/${pr.number}/`)
-                )?.length || 0);
-
-                prAnalyses.push({
-                  pr,
-                  teamMemberComments,
-                  externalComments,
-                  totalComments: teamMemberComments + externalComments,
-                  quarter: quarter.quarter
-                });
-              });
-            });
-          });
-
-          const totalPRs = quarterlyData.reduce((sum, q) => sum + q.totalPRs, 0);
-          const totalComments = quarterlyData.reduce((sum, q) => sum + q.totalComments, 0);
-
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            quarterlyData,
-            totalPRs,
-            totalComments,
-            prAnalyses: prAnalyses.sort((a, b) => new Date(b.pr.created_at) - new Date(a.pr.created_at))
-          }));
-        })
-        .catch((error) => {
-          console.error('Error refreshing quarterly data:', error);
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            error: error.message || 'Failed to refresh quarterly data'
-          }));
-        });
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setData(result)
+      } else {
+        throw new Error('API returned unsuccessful response')
+      }
+    } catch (err) {
+      console.error('Error fetching analysis data:', err)
+      setError(err.message || 'Failed to fetch analysis data')
+    } finally {
+      setLoading(false)
     }
   }
 
+  const handleRefresh = () => {
+    fetchAnalysisData()
+  }
+
   const handleExportQuarterlyData = () => {
-    if (!quarterlyData.length || !teamMembersName.length) {
-      alert('No quarterly data available to export.');
-      return;
-    }
-
-    const quarterlyMetrics = [];
-    quarterlyData.forEach(quarter => {
-      quarter.metrics?.forEach(metric => {
-        quarterlyMetrics.push({
-          ...metric,
-          quarter: quarter.quarter
-        });
-      });
-    });
-
-    exportTeamData(
-      teamName,
-      teamMembersName,
-      quarterlyMetrics,
-      quarterlyData,
-      'excel'
-    );
+    if (!data) return
+    
+    const csvContent = [
+      ['Quarter', 'Total PRs', 'Total Comments', 'Team Comments', 'Compare Team Comments', 'External Comments'],
+      ...data.quarterlyData.map(q => [
+        q.quarter,
+        q.totalPRs,
+        q.totalComments,
+        q.teamMemberComments,
+        q.compareTeamComments || 0,
+        q.externalComments
+      ])
+    ].map(row => row.join(',')).join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pr-comment-analysis-${selectedYear}.csv`
+    a.click()
   }
 
   // Chart data preparation
   const getChartData = () => {
-    const map = new Map()
-
-    quarterlyData.forEach((q) => {
-      map.set(q.quarter, {
+    if (!data?.quarterlyData) return []
+    
+    return data.quarterlyData.map(q => {
+      const chartData = {
         quarter: q.quarter,
-        [`${teamName} - Team Members`]: q.teamMemberComments,
-        [`${teamName} - External`]: q.externalComments,
-      })
+        [`${data.teams.primary.name} - Team`]: q.teamMemberComments,
+        External: q.externalComments,
+      }
+      
+      if (compareTeamId && q.compareTeamComments) {
+        chartData[`${data.teams.comparison.name} - Team`] = q.compareTeamComments
+      }
+      
+      return chartData
     })
-
-    if (state.comparisonQuarterlyData.length > 0) {
-      state.comparisonQuarterlyData.forEach((q) => {
-        const existing = map.get(q.quarter) || { quarter: q.quarter }
-        map.set(q.quarter, {
-          ...existing,
-        })
-      })
-    }
-
-    return Array.from(map.values()).sort((a, b) => b.quarter.localeCompare(a.quarter))
   }
 
   const getPRChartData = () => {
-    return quarterlyData.map((q) => ({
+    if (!data?.quarterlyData) return []
+    
+    return data.quarterlyData.map(q => ({
       quarter: q.quarter,
-      [`${teamName} - PRs Raised`]: q.totalPRs,
-      [`${teamName} - PRs Merged`]: q.metrics?.reduce((sum, m) => sum + (m.mergedPRs || 0), 0) || 0,
-    })).sort((a, b) => b.quarter.localeCompare(a.quarter))
+      'Total PRs': q.totalPRs,
+      'Total Comments': q.totalComments,
+    }))
   }
 
   const getPieData = () => {
-    const totals = quarterlyData.reduce(
-      (acc, q) => ({
-        teamMembers: acc.teamMembers + q.teamMemberComments,
-        external: acc.external + q.externalComments,
-      }),
-      { teamMembers: 0, external: 0 }
-    )
-
-    return [
-      { name: "Team Members", value: totals.teamMembers },
-      { name: "External", value: totals.external },
+    if (!data?.yearSummary) return []
+    
+    const pieData = [
+      { name: data.teams.primary.name, value: data.yearSummary.teamMemberComments },
+      { name: "External", value: data.yearSummary.externalComments },
     ]
+    
+    if (compareTeamId && data.yearSummary.compareTeamComments) {
+      pieData.splice(1, 0, { 
+        name: data.teams.comparison.name, 
+        value: data.yearSummary.compareTeamComments 
+      })
+    }
+    
+    return pieData
   }
 
-  const COLORS = ["#3b82f6", "#ef4444", "#60a5fa", "#fca5a5"]
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
 
   if (error) {
     return (
@@ -249,6 +155,18 @@ export function PRCommentAnalysis({
             <Button onClick={handleRefresh} className="mt-4">
               Retry
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!data && !loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            <p>No data available</p>
           </div>
         </CardContent>
       </Card>
@@ -277,7 +195,7 @@ export function PRCommentAnalysis({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPRs}</div>
+            <div className="text-2xl font-bold">{data?.yearSummary.totalPRs || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">Last 4 quarters</p>
           </CardContent>
         </Card>
@@ -286,21 +204,15 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              {selectedGraph === "prs" ? "Merged PRs" : "Total Comments"}
+              {selectedGraph === "prs" ? "Total Comments" : "Total Comments"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {selectedGraph === "prs" 
-                ? quarterlyData.reduce((sum, q) => sum + (q.metrics?.reduce((mSum, m) => mSum + (m.mergedPRs || 0), 0) || 0), 0)
-                : totalComments
-              }
+              {data?.yearSummary.totalComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedGraph === "prs" 
-                ? `${totalPRs > 0 ? ((quarterlyData.reduce((sum, q) => sum + (q.metrics?.reduce((mSum, m) => mSum + (m.mergedPRs || 0), 0) || 0), 0) / totalPRs) * 100).toFixed(1) : 0}% merge rate`
-                : "All quarterly PR comments"
-              }
+              All quarterly PR comments
             </p>
           </CardContent>
         </Card>
@@ -309,21 +221,15 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="w-4 h-4" />
-              {selectedGraph === "prs" ? "Avg PRs per Quarter" : "By Team Members"}
+              By Team Members
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {selectedGraph === "prs" 
-                ? Math.round(totalPRs / Math.max(quarterlyData.length, 1))
-                : quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0)
-              }
+              {data?.yearSummary.teamMemberComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedGraph === "prs" 
-                ? "Average per quarter"
-                : `${totalComments > 0 ? (quarterlyData.reduce((sum, q) => sum + q.teamMemberComments, 0) / totalComments * 100).toFixed(1) : 0}% of total`
-              }
+              {data?.yearSummary.teamMemberPercent.toFixed(1)}% of total
             </p>
           </CardContent>
         </Card>
@@ -332,21 +238,15 @@ export function PRCommentAnalysis({
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <ExternalLink className="w-4 h-4" />
-              {selectedGraph === "prs" ? "Total Team Members" : "By External"}
+              By External
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {selectedGraph === "prs" 
-                ? teamMembersName.length
-                : quarterlyData.reduce((sum, q) => sum + q.externalComments, 0)
-              }
+              {data?.yearSummary.externalComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedGraph === "prs" 
-                ? "Contributing to PRs"
-                : `${totalComments > 0 ? (quarterlyData.reduce((sum, q) => sum + q.externalComments, 0) / totalComments * 100).toFixed(1) : 0}% of total`
-              }
+              {data?.yearSummary.externalPercent.toFixed(1)}% of total
             </p>
           </CardContent>
         </Card>
@@ -355,19 +255,34 @@ export function PRCommentAnalysis({
       {/* Graph Selection and Display */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle>
                 {selectedGraph === "prs" ? "PR Timeline Analysis" : "Comment Source Analysis"}
               </CardTitle>
               <CardDescription>
                 {selectedGraph === "prs" 
-                  ? `PRs raised and merged over time by ${teamName}`
-                  : `Team Member vs External comments on PRs (${teamName})`
+                  ? `PRs raised and comments over time`
+                  : `Team Member vs External comments on PRs`
                 }
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2022">2022</SelectItem>
+                    <SelectItem value="2023">2023</SelectItem>
+                    <SelectItem value="2024">2024</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="h-6 w-px bg-border" />
               <Button
                 variant={selectedGraph === "total" ? "default" : "outline"}
                 size="sm"
@@ -401,6 +316,7 @@ export function PRCommentAnalysis({
                 size="sm"
                 onClick={handleExportQuarterlyData}
                 className="ml-2"
+                disabled={!data}
               >
                 <Download className="w-4 h-4 mr-1" />
                 Export Data
@@ -461,8 +377,15 @@ export function PRCommentAnalysis({
                     <YAxis />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Legend />
-                    <Bar dataKey={`${teamName} - Team Members`} fill={COLORS[0]} />
-                    <Bar dataKey={`${teamName} - External`} fill={COLORS[1]} />
+                    {data?.teams && (
+                      <>
+                        <Bar dataKey={`${data.teams.primary.name} - Team`} fill={COLORS[0]} />
+                        {compareTeamId && data.teams.comparison && (
+                          <Bar dataKey={`${data.teams.comparison.name} - Team`} fill={COLORS[1]} />
+                        )}
+                        <Bar dataKey="External" fill={COLORS[2]} />
+                      </>
+                    )}
                   </BarChart>
                 ) : selectedGraph === "prs" ? (
                   <BarChart data={getPRChartData()}>
@@ -471,8 +394,8 @@ export function PRCommentAnalysis({
                     <YAxis />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Legend />
-                    <Bar dataKey={`${teamName} - PRs Raised`} fill={COLORS[0]} />
-                    <Bar dataKey={`${teamName} - PRs Merged`} fill={COLORS[2]} />
+                    <Bar dataKey="Total PRs" fill={COLORS[0]} />
+                    <Bar dataKey="Total Comments" fill={COLORS[3]} />
                   </BarChart>
                 ) : (
                   <LineChart data={getChartData()}>
@@ -481,8 +404,30 @@ export function PRCommentAnalysis({
                     <YAxis />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Legend />
-                    <Line type="monotone" dataKey={`${teamName} - Team Members`} stroke={COLORS[0]} strokeWidth={2} />
-                    <Line type="monotone" dataKey={`${teamName} - External`} stroke={COLORS[1]} strokeWidth={2} />
+                    {data?.teams && (
+                      <>
+                        <Line 
+                          type="monotone" 
+                          dataKey={`${data.teams.primary.name} - Team`} 
+                          stroke={COLORS[0]} 
+                          strokeWidth={2}
+                        />
+                        {compareTeamId && data.teams.comparison && (
+                          <Line 
+                            type="monotone" 
+                            dataKey={`${data.teams.comparison.name} - Team`} 
+                            stroke={COLORS[1]} 
+                            strokeWidth={2}
+                          />
+                        )}
+                        <Line 
+                          type="monotone" 
+                          dataKey="External" 
+                          stroke={COLORS[2]} 
+                          strokeWidth={2}
+                        />
+                      </>
+                    )}
                   </LineChart>
                 )}
               </ResponsiveContainer>
@@ -491,59 +436,88 @@ export function PRCommentAnalysis({
         </CardContent>
       </Card>
 
-      {/* PRs with Comment Breakdown */}
+      {/* Top Commenters by Quarter */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>PR Comment Breakdown</CardTitle>
-            <CardDescription>Comments by source (Team Members vs External)</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Top Commenters
+            </CardTitle>
+            <CardDescription>Most active commenters by quarter and team</CardDescription>
           </div>
-          <Button onClick={() => setShowAllPRs(!showAllPRs)} variant="outline">
-            {showAllPRs ? "Hide All" : "Show All"}
+          <Button onClick={() => setShowTopCommenters(!showTopCommenters)} variant="outline">
+            {showTopCommenters ? "Hide" : "Show"}
           </Button>
         </CardHeader>
-        {showAllPRs && (
+        {showTopCommenters && data?.quarterlyData && (
           <CardContent>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {prAnalyses && prAnalyses.length > 0 ? (
-                <div className="space-y-3">
-                  {prAnalyses.map((analysis) => (
-                    <div key={analysis.pr.id} className="p-4 border rounded-lg hover:bg-muted/50 transition">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <a
-                            href={analysis.pr.html_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline font-medium"
-                          >
-                            #{analysis.pr.number}: {analysis.pr.title}
-                          </a>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {new Date(analysis.pr.created_at).toLocaleDateString()} • by {analysis.pr.user.login}
-                            {analysis.pr.merged_at && (
-                              <span className="ml-2 text-green-600">• Merged</span>
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <div className="text-sm">
-                            <span className="font-medium text-blue-600">{analysis.teamMemberComments}</span>
-                            <span className="text-muted-foreground"> team member</span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium text-red-600">{analysis.externalComments}</span>
-                            <span className="text-muted-foreground"> external</span>
-                          </div>
-                          <div className="text-sm font-medium">{analysis.totalComments} total</div>
-                        </div>
-                      </div>
+            <div className="space-y-6 max-h-[600px] overflow-y-auto">
+              {data.quarterlyData.map((quarter) => (
+                <div key={quarter.quarter} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg">{quarter.quarter}</h3>
+                    <div className="text-sm text-muted-foreground">
+                      {quarter.totalPRs} PRs • {quarter.totalComments} comments
                     </div>
-                  ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Primary Team */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-blue-600 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {data.teams.primary.name}
+                      </h4>
+                      {quarter.topCommenters.fromTeam.map((commenter, idx) => (
+                        <div key={commenter.username} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">#{idx + 1}</span>
+                            <span className="font-medium">{commenter.username}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">{commenter.count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Comparison Team */}
+                    {compareTeamId && data.teams.comparison && quarter.topCommenters.fromCompareTeam && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-emerald-600 flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          {data.teams.comparison.name}
+                        </h4>
+                        {quarter.topCommenters.fromCompareTeam.map((commenter, idx) => (
+                          <div key={commenter.username} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">#{idx + 1}</span>
+                              <span className="font-medium">{commenter.username}</span>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">{commenter.count}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* External */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-amber-600 flex items-center gap-2">
+                        <ExternalLink className="w-4 h-4" />
+                        External
+                      </h4>
+                      {quarter.topCommenters.external.map((commenter, idx) => (
+                        <div key={commenter.username} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">#{idx + 1}</span>
+                            <span className="font-medium">{commenter.username}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">{commenter.count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">No PR data available</p>
-              )}
+              ))}
             </div>
           </CardContent>
         )}

@@ -7,68 +7,67 @@ import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { PRCommentAnalysis } from "@/components/pr-comment-analysis"
 import { TeamDevelopersSection } from "@/components/team-developers-section"
-import { createClient } from "@/lib/supabase/client"
+import axios from "axios"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { useGithub } from "@/lib/context/githubData"
-import { exportTeamData } from "@/lib/export-utils"
-
-interface Team {
-  id: string
-  name: string
-}
 
 export default function Dashboard() {
-  const [teams, setTeams] = useState<Team[]>([])
-  const [selectedTeam, setSelectedTeam] = useState<string>("")
+  const [teams, setTeams] = useState([])
+  const [selectedTeam, setSelectedTeam] = useState("")
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [exportFormat, setExportFormat] = useState<'markdown' | 'csv' | 'json' | 'excel'>('excel')
-  const {fetchAllUserName, teamMetrics, teamMembersName, fetchQuarterlyMetrics} = useGithub();
-  console.log("teamMetrics:", teamMetrics);
+  const [exportFormat, setExportFormat] = useState('excel')
+  const [lastQuarterData, setLastQuarterData] = useState([]);
+  const [lastQuarterLoading, setLastQuarterLoading] = useState(false);
 
   useEffect(() => {
-    // Initialize selectedTeam from localStorage after component mounts
     const savedTeam = localStorage.getItem('selectedTeam')
     if (savedTeam) {
       setSelectedTeam(savedTeam)
     }
-    fetchTeams()
+    fetchTeams();
   }, [])
 
   useEffect(() => {
     if (selectedTeam) {
-      fetchAllUserName(selectedTeam);
+      fetchTeamData(selectedTeam);
     }
   }, [selectedTeam]);
 
   const fetchTeams = async () => {
+    setLoading(true);
     try {
-      setLoading(true)
-      const supabase = createClient()
-      const { data, error } = await supabase.from("teams").select("id, name")
-
-      if (error) throw error
-
-      setTeams(data || [])
-      
-      // Only set default team if no team is currently selected and localStorage doesn't have a saved team
-      const savedTeam = localStorage.getItem('selectedTeam')
-      if (data && data.length > 0 && !selectedTeam && !savedTeam) {
-        setSelectedTeam(data[0].id)
+      const { data, error } = await axios.get('http://localhost:4000/teams');
+      if (error) {
+        throw new Error('Error fetching teams');
       }
+      console.log('team', data.teams)
+      setTeams(data.teams);
     } catch (error) {
-      console.error("Error fetching teams:", error)
+      console.error('Error fetching teams:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
+  const fetchTeamData = async (teamId) => {
+    try {
+      setLastQuarterLoading(true);
+      const response = await axios.get(`http://localhost:4000/prs/team/${teamId}`);
+      console.log('response', response.data);
+      setLastQuarterData(response.data);
+    } catch (error) {
+      console.error("Error fetching team data:", error);
+    } finally {
+      setLastQuarterLoading(false);
+    }
+  };
 
   const handleSyncComments = async () => {
-    if (!selectedTeam) return 
+    if (!selectedTeam) return
     try {
       setSyncing(true);
-      fetchTeams();
-    }catch (error) {
+      await axios.post('http://localhost:4000/prs/refresh-team-prs', { team_id: selectedTeam });
+      alert("Comments synced successfully!");
+    } catch (error) {
       console.error("Error syncing comments:", error)
     } finally {
       setSyncing(false);
@@ -76,35 +75,7 @@ export default function Dashboard() {
   }
 
   const handleExport = async () => {
-    if (!selectedTeam || !teamMetrics.length || !teamMembersName.length) {
-      alert('Please select a team and wait for data to load before exporting.');
-      return;
-    }
-
-    try {
-      const teamName = teams.find((t) => t.id === selectedTeam)?.name || 'Unknown Team';
-      
-      // Fetch quarterly data for comprehensive report
-      let quarterlyData = [];
-      if (fetchQuarterlyMetrics) {
-        try {
-          quarterlyData = await fetchQuarterlyMetrics(4);
-        } catch (error) {
-          console.warn('Could not fetch quarterly data for export:', error);
-        }
-      }
-
-      exportTeamData(
-        teamName,
-        teamMembersName,
-        teamMetrics,
-        quarterlyData,
-        exportFormat
-      );
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    }
+   // Export team data using utility function
   }
 
   if (loading) {
@@ -118,7 +89,7 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <DashboardHeader title={"Hy-vee activity tracker"} onExport={handleExport}/>
+        <DashboardHeader title={"Hy-vee activity tracker"} onExport={handleExport} />
 
         {/* Team Selection */}
         <Card className="mb-8">
@@ -135,7 +106,7 @@ export default function Dashboard() {
                     <SelectValue placeholder="Select team" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teams.map((team) => (
+                    {teams?.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
                       </SelectItem>
@@ -144,6 +115,18 @@ export default function Dashboard() {
                 </Select>
               </div>
 
+              <div>
+                <label className="text-sm font-medium">last synced</label>
+                {
+                  teams?.find((t) => t.id === selectedTeam)?.last_sync ? (
+                    <p className="mt-1 text-sm">
+                      {new Date(teams.find((t) => t.id === selectedTeam)?.last_sync).toLocaleString()}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted-foreground">Never synced</p>
+                  )
+                }
+              </div>
               <div className="flex items-end">
                 <Button onClick={handleSyncComments} disabled={syncing} className="w-full">
                   {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -158,7 +141,8 @@ export default function Dashboard() {
         {selectedTeam && (
           <div className="mb-12">
             <TeamDevelopersSection
-              teamName={teams.find((t) => t.id === selectedTeam)?.name || ""}
+              lastQuarterData={lastQuarterData}
+              lastQuarterLoading={lastQuarterLoading}
             />
           </div>
         )}
@@ -167,7 +151,7 @@ export default function Dashboard() {
         {selectedTeam && (
           <PRCommentAnalysis
             teamId={selectedTeam}
-            teamName={teams.find((t) => t.id === selectedTeam)?.name || ""}
+            compareTeamId={'9e48e063-1272-40ac-8d31-6300783d03d4'}
           />
         )}
       </div>

@@ -1,18 +1,30 @@
-"use client"
+"use client";
 
-import { Download, Settings } from "lucide-react"
+import { ArrowBigRight, ArrowRight, ArrowRightIcon, Download, Settings } from "lucide-react";
+import Link from "next/link";
 
 interface DashboardHeaderProps {
-  title: string
-  onExport?: () => void
-  onSettings?: () => void
+  title: string;
+  onExport?: () => void;
+  onSettings?: () => void;
 }
 
-export function DashboardHeader({ title, onExport, onSettings }: DashboardHeaderProps) {
+export function DashboardHeader({
+  title,
+  onExport,
+  onSettings,
+}: DashboardHeaderProps) {
   return (
     <div className="mb-8">
-      <h1 className="text-4xl font-bold text-foreground mb-2">{title}</h1>
-      <p className="text-muted-foreground mb-6">Team-wise developer performance insights</p>
+      <div className="flex justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground mb-2">{title}</h1>
+          <p className="text-muted-foreground mb-6">
+            Team-wise developer performance insights
+          </p>
+        </div>
+        <Link href="/admin" className="flex items-center"><p >Admin </p><ArrowRightIcon size={18} className="" /></Link> 
+      </div>
 
       <div className="flex gap-3">
         {onExport && (
@@ -35,5 +47,5 @@ export function DashboardHeader({ title, onExport, onSettings }: DashboardHeader
         )}
       </div>
     </div>
-  )
+  );
 }

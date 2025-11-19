@@ -34,7 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-, "components/pr-comment-analysis.jsx"  ],
+, "components/pr-comment-analysis.jsx", "app/page.jsx", "components/team-developers-section.jsx", "components/developer-performance-card.jsx", "components/top-performers-card.jsx", "app/engineer/[githubUsername]/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]

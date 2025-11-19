@@ -3,26 +3,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { useState } from "react";
-import { useGithub } from "@/lib/context/githubData";
 import { BoringAvatar } from "@/components/ui/avatar";
 
 
 export function DeveloperPerformanceCard({
   developer
-}: {
-  developer: any
 }) {
-  const {loading} = useGithub();
   const [showIssues, setShowIssues] = useState(false);
-  const {prCount, mergedPRs, mergeRate, repos, averageComments, reviewComments, issueComments, member} =developer;
+  const {closedPRs, display_name, draftPRs, github_username, mergedPRs, openPRs, repos, totalComments, totalPRs} =developer;
   const MetricBadge = ({
     label,
     value,
     unit = "",
-  }: {
-    label: string;
-    value: number | string;
-    unit?: string;
   }) => {
     return (
       <div className="flex items-center justify-between py-2 px-3 bg-secondary/30 rounded-lg">
@@ -39,13 +31,13 @@ export function DeveloperPerformanceCard({
 
   return (
     <>
-      <Link href={`/engineer/${member}`}>
+      <Link href={`/engineer/${github_username}`}>
         <Card className="overflow-hidden border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer h-full">
           <CardContent className="p-4">
             {/* Header with avatar */}
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border/30">
               <BoringAvatar
-                name={member}
+                name={display_name}
                 size={40}
                 variant="beam"
                 colors={["#98D8C8", "#F7DC6F",]}
@@ -53,10 +45,10 @@ export function DeveloperPerformanceCard({
               />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">
-                  {member}
+                  {display_name}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  @{member}
+                  @{github_username}
                 </p>
               </div>
             </div>
@@ -65,20 +57,20 @@ export function DeveloperPerformanceCard({
             <div className="space-y-2">
               <MetricBadge
                 label="Total PRs"
-                value={loading ? "..." : prCount}
+                value={ totalPRs}
               />
               <MetricBadge
                 label="Merged PRs"
-                value={loading ? "..." : mergedPRs}
+                value={ mergedPRs}
               />
               <MetricBadge
                 label="Merge Rate"
-                value={loading ? "..." : mergeRate}
+                value={ totalPRs > 0 ? ((mergedPRs / totalPRs) * 100).toFixed(2) : "0"}
                 unit="%"
               />
               <MetricBadge
                 label="Avg Conversations"
-                value={loading ? "..." : averageComments}
+                value={(totalComments / totalPRs).toFixed(2)}
               />
             </div>
 
@@ -111,7 +103,7 @@ export function DeveloperPerformanceCard({
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">
-                  PRs by {member}
+                  PRs by {display_name}
                 </h2>
                 <button
                   onClick={() => setShowIssues(false)}
@@ -125,10 +117,10 @@ export function DeveloperPerformanceCard({
                 <p className="text-muted-foreground">No PRs found</p>
               ) : (
                 <div className="space-y-3">
-                  {repos.map((pr: any) => (
+                  {repos.map((pr) => (
                     <a
-                      key={pr.id}
-                      href={pr.html_url}
+                      key={pr.repo_id}
+                      href={pr.repository_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block p-3 border rounded-lg hover:bg-secondary/50 transition-colors"
@@ -140,8 +132,8 @@ export function DeveloperPerformanceCard({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(pr.created_at).toLocaleDateString()} •{" "}
-                            {pr.comments} comments
-                            {pr.pull_request?.merged_at && (
+                            {pr.total_comments} comments
+                            {pr.merged_at && (
                               <span className="ml-2 text-green-600">
                                 • Merged
                               </span>
