@@ -136,12 +136,13 @@ export default function EngineerProfilePage() {
     }
   }
 
-  // Convert PRs to FullCalendar events
+  // Convert PRs to FullCalendar events with timeline (start to end date)
   const calendarEvents = useMemo(() => {
     if (!data?.data?.prs) return []
     
     return data.data.prs.map(pr => {
       const createdDate = pr.created_at
+      let endDate = pr.merged_at || pr.closed_at || new Date().toISOString()
       
       let color = '#10b981' // emerald-500 for merged
       
@@ -157,6 +158,7 @@ export default function EngineerProfilePage() {
         id: String(pr.number),
         title: `#${pr.number}: ${pr.title}`,
         start: createdDate,
+        end: endDate,
         allDay: true,
         backgroundColor: color,
         borderColor: color,
@@ -236,7 +238,7 @@ export default function EngineerProfilePage() {
           </div>
 
           {/* Profile Header */}
-          <Card className="mb-6 border-2">
+          <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
                 <div className="relative">
@@ -244,20 +246,20 @@ export default function EngineerProfilePage() {
                     name={user.github_username}
                     size={96}
                     variant="beam"
-                    className="w-24 h-24 border-4 border-primary shadow-lg"
+                    className="w-24 h-24 border-2 border-border shadow-sm"
                   />
-                  <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2">
+                  <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 shadow-sm">
                     <Github className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold mb-2">{user.display_name || user.github_username}</h1>
+                  <h1 className="text-2xl font-bold mb-2">{user.display_name || user.github_username}</h1>
                   <div className="flex items-center gap-2 text-muted-foreground mb-3">
                     <a
                       href={`https://github.hy-vee.cloud/${user.github_username}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-primary underline flex items-center gap-1"
+                      className="hover:text-primary flex items-center gap-1"
                     >
                       @{user.github_username}
                       <ExternalLink className="w-3 h-3" />
@@ -275,33 +277,33 @@ export default function EngineerProfilePage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-6">
-            <Card className="border-l-4 border-l-primary">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <GitPullRequest className="w-4 h-4" />
                   Total PRs
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{stats.totalPRs}</div>
-                <div className="flex gap-2 mt-3 text-xs">
-                  <Badge className="bg-blue-500 text-xs">{stats.openPRs} Open</Badge>
-                  <Badge className="bg-emerald-500 text-xs">{stats.mergedPRs} Merged</Badge>
-                  <Badge className="bg-amber-500 text-xs">{stats.closedPRs} Closed</Badge>
-                  {stats.draftPRs > 0 && <Badge className="bg-indigo-500 text-xs">{stats.draftPRs} Draft</Badge>}
+                <div className="text-2xl font-bold">{stats.totalPRs}</div>
+                <div className="flex gap-2 mt-3 text-xs flex-wrap">
+                  <Badge variant="secondary" className="text-xs">{stats.openPRs} Open</Badge>
+                  <Badge variant="secondary" className="text-xs">{stats.mergedPRs} Merged</Badge>
+                  <Badge variant="secondary" className="text-xs">{stats.closedPRs} Closed</Badge>
+                  {stats.draftPRs > 0 && <Badge variant="secondary" className="text-xs">{stats.draftPRs} Draft</Badge>}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-emerald-500">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
                   Merge Rate
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-emerald-500">
+                <div className="text-2xl font-bold">
                   {stats.totalPRs > 0 ? Math.round((stats.mergedPRs / stats.totalPRs) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -310,31 +312,31 @@ export default function EngineerProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-blue-500">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
                   Total Comments
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-500">{stats.totalComments}</div>
-                <div className="flex gap-2 mt-3 text-xs">
+                <div className="text-2xl font-bold">{stats.totalComments}</div>
+                <div className="flex gap-2 mt-3 text-xs flex-wrap">
                   <Badge variant="outline" className="text-xs">{stats.issueComments} Issue</Badge>
                   <Badge variant="outline" className="text-xs">{stats.reviewComments} Review</Badge>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-purple-500">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <GitMerge className="w-4 h-4" />
                   Engagement
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-purple-500">
+                <div className="text-2xl font-bold">
                   {stats.totalPRs > 0 ? (stats.totalComments / stats.totalPRs).toFixed(1) : 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -378,11 +380,11 @@ export default function EngineerProfilePage() {
 
           {/* Selected PR Details */}
           {selectedPR && (
-            <Card className="mb-6 border-2 border-primary/50">
+            <Card className="mb-6">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="text-lg">
                     <a
                       href={selectedPR.repository_url}
                       target="_blank"
@@ -401,13 +403,13 @@ export default function EngineerProfilePage() {
                 </div>
                 <div className="flex gap-2">
                   {selectedPR.draft ? (
-                    <Badge className="bg-indigo-500 hover:bg-indigo-600">Draft</Badge>
+                    <Badge variant="secondary">Draft</Badge>
                   ) : selectedPR.merged_at ? (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-600">Merged</Badge>
+                    <Badge variant="secondary">Merged</Badge>
                   ) : selectedPR.state === 'open' ? (
-                    <Badge className="bg-blue-500 hover:bg-blue-600">Open</Badge>
+                    <Badge variant="secondary">Open</Badge>
                   ) : (
-                    <Badge className="bg-amber-500 hover:bg-amber-600">Closed</Badge>
+                    <Badge variant="secondary">Closed</Badge>
                   )}
                 </div>
               </div>
@@ -416,29 +418,29 @@ export default function EngineerProfilePage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Comments</p>
-                  <p className="text-xl font-semibold">{selectedPR.total_comments}</p>
+                  <p className="text-lg font-semibold">{selectedPR.total_comments}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Code Quality</p>
-                  <p className="text-xl font-semibold">{selectedPR.code_quality || 0}</p>
+                  <p className="text-lg font-semibold">{selectedPR.code_quality || 0}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Logic/Functionality</p>
-                  <p className="text-xl font-semibold">{selectedPR.logic_functionality || 0}</p>
+                  <p className="text-lg font-semibold">{selectedPR.logic_functionality || 0}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Performance/Security</p>
-                  <p className="text-xl font-semibold">{selectedPR.performance_security || 0}</p>
+                  <p className="text-lg font-semibold">{selectedPR.performance_security || 0}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Testing/Docs</p>
-                  <p className="text-xl font-semibold">{selectedPR.testing_documentation || 0}</p>
+                  <p className="text-lg font-semibold">{selectedPR.testing_documentation || 0}</p>
                 </div>
               </div>
 
               {commentsByPR[selectedPR.repo_id] && (
                 <div className="mt-4">
-                  <h4 className="font-semibold mb-3">Comments ({commentsByPR[selectedPR.repo_id].length})</h4>
+                  <h4 className="text-sm font-semibold mb-3">Comments ({commentsByPR[selectedPR.repo_id].length})</h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {commentsByPR[selectedPR.repo_id].map((comment) => (
                       <div key={comment.id} className="p-3 border rounded-lg bg-muted/50">
@@ -476,7 +478,7 @@ export default function EngineerProfilePage() {
                 {data.data.prs.map((pr) => (
                   <div
                     key={pr.number}
-                    className="p-3 border rounded-lg hover:shadow-md hover:border-primary/50 transition-all cursor-pointer bg-card"
+                    className="p-3 border rounded-lg hover:bg-accent transition-all cursor-pointer"
                     onClick={() => setSelectedPR(pr)}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -485,7 +487,7 @@ export default function EngineerProfilePage() {
                           href={pr.repository_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-semibold hover:text-primary flex items-center gap-2 mb-2 group"
+                          className="text-sm font-medium hover:text-primary flex items-center gap-2 mb-2 group"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <span className="truncate">#{pr.number}: {pr.title}</span>
@@ -493,13 +495,13 @@ export default function EngineerProfilePage() {
                         </a>
                         <div className="flex items-center gap-2 flex-wrap">
                           {pr.draft ? (
-                            <Badge className="bg-indigo-500 hover:bg-indigo-600 text-xs">Draft</Badge>
+                            <Badge variant="secondary" className="text-xs">Draft</Badge>
                           ) : pr.merged_at ? (
-                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-xs">Merged</Badge>
+                            <Badge variant="secondary" className="text-xs">Merged</Badge>
                           ) : pr.state === 'open' ? (
-                            <Badge className="bg-blue-500 hover:bg-blue-600 text-xs">Open</Badge>
+                            <Badge variant="secondary" className="text-xs">Open</Badge>
                           ) : (
-                            <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">Closed</Badge>
+                            <Badge variant="secondary" className="text-xs">Closed</Badge>
                           )}
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <MessageSquare className="w-3 h-3" />
