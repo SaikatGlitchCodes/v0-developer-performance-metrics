@@ -10,6 +10,7 @@ import {
   Download,
   Settings,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -24,40 +25,57 @@ export function DashboardHeader({
   onExport,
   onSettings,
 }: DashboardHeaderProps) {
-  const [status, setStatus] = useState('red');
+  const [status, setStatus] = useState("red");
   useEffect(() => {
     checkServer();
   }, []);
 
   const checkServer = async () => {
     try {
-      const response = await axios.get('http://localhost:4000/health');
+      const response = await axios.get("http://localhost:4000/health");
       if (response.status === 200) {
-        setStatus('green');
+        setStatus("green");
       } else {
-        setStatus('red');
+        setStatus("red");
       }
-
-    }catch (error) {
-      setStatus('red');
+    } catch (error) {
+      setStatus("red");
     }
-  }
+  };
 
   return (
     <div className="mb-8">
       <div className="flex justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">{title}</h1>
-          <p className="text-muted-foreground mb-6">
-            Team-wise developer performance insights
-          </p>
+        <div className="flex gap-x-3">
+          <Image
+            src="/brand.png"
+            alt="Brand Logo"
+            width={100}
+            height={100}
+            className="mb-4"
+          />
+          <div>
+            <h1 className="text-4xl text-foreground mb-2">{title}</h1>
+            <p className="text-muted-foreground mb-6">
+              Team-wise developer performance insights
+            </p>
+          </div>
         </div>
         <div>
           <Link href="/admin" className="flex items-center">
             <p>Admin </p>
             <ArrowRightIcon size={18} className="" />
           </Link>
-          <div className="flex items-center gap-x-2"><div className={`h-2 w-2 bg-${status}-400 rounded-full animate-pulse`}></div> <p className="text-sm">{status === 'green' ? 'online' : 'offline'}</p></div>  
+          <div className="flex items-center gap-x-2">
+            <div
+              className={`h-2 w-2 ${
+                status === "green" ? "bg-green-400" : "bg-red-400"
+              } rounded-full animate-pulse`}
+            ></div>
+            <p className="text-sm">
+              {status === "green" ? "online" : "offline"}
+            </p>
+          </div>
         </div>
       </div>
 

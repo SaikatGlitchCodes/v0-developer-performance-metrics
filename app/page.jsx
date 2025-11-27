@@ -11,6 +11,7 @@ import axios from "axios"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useTeams } from "@/lib/context/teamsContext"
 import { useTeamData } from "@/lib/context/teamDataContext"
+import { BrandLoader } from "@/components/brand-loader"
 
 export default function Dashboard() {
   const { teams, loading, fetchTeams } = useTeams()
@@ -77,11 +78,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </main>
-    )
+    return <BrandLoader />
   }
 
   return (

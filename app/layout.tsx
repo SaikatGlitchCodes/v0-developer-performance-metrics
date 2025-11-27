@@ -10,9 +10,13 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
+  title: "Hy-vee Activity Tracker",
+  description: "Team-wise developer performance insights",
   generator: "v0.app",
+  icons: {
+    icon: "/brand.png",
+    apple: "/brand.png",
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/brand.png" type="image/png" />
+      </head>
       <GithubProvider token={process.env.NEXT_PUBLIC_GITHUB_TOKEN}>
         <TeamsProvider>
           <TeamDataProvider>
