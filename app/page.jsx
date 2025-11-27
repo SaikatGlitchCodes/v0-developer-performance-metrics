@@ -58,7 +58,7 @@ export default function Dashboard() {
     if (!selectedTeam) return
     try {
       setSyncing(true);
-      await axios.post('http://localhost:4000/prs/refresh-team-prs', { team_id: selectedTeam });
+      await axios.post('https://metrictracker-be.onrender.com/prs/refresh-team-prs', { team_id: selectedTeam });
       
       // Clear cache and refetch teams to update last_sync
       clearCache(selectedTeam);

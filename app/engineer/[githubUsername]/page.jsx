@@ -123,7 +123,7 @@ export default function EngineerProfilePage() {
     setError(null)
     
     try {
-      const response = await fetch(`http://localhost:4000/prs/user/${githubUsername}?timeline=${timeline}`)
+      const response = await fetch(`https://metrictracker-be.onrender.com/prs/user/${githubUsername}?timeline=${timeline}`)
       
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`)
@@ -150,7 +150,7 @@ export default function EngineerProfilePage() {
     setAiAnalysis(null)
     
     try {
-      const response = await fetch('http://localhost:4000/ai/analyze-repo', {
+      const response = await fetch('https://metrictracker-be.onrender.com/ai/analyze-repo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ export default function EngineerProfilePage() {
     setCustomAnalysis(null)
     
     try {
-      const response = await fetch('http://localhost:4000/ai/custom-analysis', {
+      const response = await fetch('https://metrictracker-be.onrender.com/ai/custom-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -32,7 +32,7 @@ export function DashboardHeader({
 
   const checkServer = async () => {
     try {
-      const response = await axios.get("http://localhost:4000/health");
+      const response = await axios.get("https://metrictracker-be.onrender.com/health");
       if (response.status === 200) {
         setStatus("green");
       } else {

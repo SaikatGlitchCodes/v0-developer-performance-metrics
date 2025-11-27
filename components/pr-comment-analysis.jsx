@@ -46,8 +46,8 @@ export function PRCommentAnalysis({
     
     try {
       const url = compareTeamId 
-        ? `http://localhost:4000/prs/comment-analysis/${teamId}?compareTeamId=${compareTeamId}&year=${selectedYear}`
-        : `http://localhost:4000/prs/comment-analysis/${teamId}?year=${selectedYear}`
+        ? `https://metrictracker-be.onrender.com/prs/comment-analysis/${teamId}?compareTeamId=${compareTeamId}&year=${selectedYear}`
+        : `https://metrictracker-be.onrender.com/prs/comment-analysis/${teamId}?year=${selectedYear}`
       
       const response = await fetch(url)
       
