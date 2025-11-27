@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ArrowLeft, Github, GitPullRequest, MessageSquare, GitMerge, GitBranch, Calendar as CalendarIcon, ExternalLink, TrendingUp } from "lucide-react"
+import { ArrowLeft, Github, GitPullRequest, MessageSquare, GitMerge, GitBranch, Calendar as CalendarIcon, ExternalLink, TrendingUp, Sparkles, Loader2 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -103,6 +104,13 @@ export default function EngineerProfilePage() {
   const [error, setError] = useState(null)
   const [timeline, setTimeline] = useState('3months')
   const [selectedPR, setSelectedPR] = useState(null)
+  const [aiAnalysis, setAiAnalysis] = useState(null)
+  const [analyzingPR, setAnalyzingPR] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
+  const [customPrompt, setCustomPrompt] = useState('')
+  const [customAnalysis, setCustomAnalysis] = useState(null)
+  const [analyzingCustom, setAnalyzingCustom] = useState(false)
+  const [customAnalysisError, setCustomAnalysisError] = useState(null)
 
   useEffect(() => {
     if (githubUsername) {
@@ -133,6 +141,83 @@ export default function EngineerProfilePage() {
       setError(err.message || 'Failed to fetch developer data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAIAnalysis = async (pr) => {
+    setAnalyzingPR(true)
+    setAnalysisError(null)
+    setAiAnalysis(null)
+    
+    try {
+      const response = await fetch('http://localhost:4000/ai/analyze-repo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repo_id: pr.repo_id,
+          repository_url: pr.repository_url
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to analyze PR: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setAiAnalysis(result.data)
+      } else {
+        throw new Error('AI analysis failed')
+      }
+    } catch (err) {
+      console.error('Error analyzing PR:', err)
+      setAnalysisError(err.message || 'Failed to analyze PR')
+    } finally {
+      setAnalyzingPR(false)
+    }
+  }
+
+  const handleCustomAnalysis = async (pr) => {
+    if (!customPrompt.trim()) {
+      setCustomAnalysisError('Please enter a question')
+      return
+    }
+
+    setAnalyzingCustom(true)
+    setCustomAnalysisError(null)
+    setCustomAnalysis(null)
+    
+    try {
+      const response = await fetch('http://localhost:4000/ai/custom-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repo_id: pr.repo_id,
+          custom_prompt: customPrompt
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to analyze PR: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setCustomAnalysis(result.data)
+      } else {
+        throw new Error('Custom analysis failed')
+      }
+    } catch (err) {
+      console.error('Error analyzing PR:', err)
+      setCustomAnalysisError(err.message || 'Failed to analyze PR')
+    } finally {
+      setAnalyzingCustom(false)
     }
   }
 
@@ -401,7 +486,26 @@ export default function EngineerProfilePage() {
                     {selectedPR.closed_at && !selectedPR.merged_at && ` • Closed ${new Date(selectedPR.closed_at).toLocaleDateString()}`}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <Button
+                    onClick={() => handleAIAnalysis(selectedPR)}
+                    disabled={analyzingPR}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {analyzingPR ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        AI Analysis
+                      </>
+                    )}
+                  </Button>
                   {selectedPR.draft ? (
                     <Badge variant="secondary">Draft</Badge>
                   ) : selectedPR.merged_at ? (
@@ -438,8 +542,170 @@ export default function EngineerProfilePage() {
                 </div>
               </div>
 
+              {/* AI Analysis Results */}
+              {aiAnalysis && (
+                <div className="mt-6 border-t pt-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <h4 className="text-lg font-semibold">AI Analysis Results</h4>
+                  </div>
+                  
+                  {/* Overall Score */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Overall Score</span>
+                      <span className="text-2xl font-bold text-primary">{aiAnalysis.analysis?.overall_score || 0}/10</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all" 
+                        style={{ width: `${(aiAnalysis.analysis?.overall_score || 0) * 10}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Score Breakdown */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-xs text-muted-foreground mb-1">Code Quality</p>
+                        <p className="text-xl font-bold">{aiAnalysis.analysis?.scores?.code_quality || 0}/10</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-xs text-muted-foreground mb-1">Logic/Functionality</p>
+                        <p className="text-xl font-bold">{aiAnalysis.analysis?.scores?.logic_functionality || 0}/10</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-xs text-muted-foreground mb-1">Performance/Security</p>
+                        <p className="text-xl font-bold">{aiAnalysis.analysis?.scores?.performance_security || 0}/10</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-xs text-muted-foreground mb-1">Testing/Documentation</p>
+                        <p className="text-xl font-bold">{aiAnalysis.analysis?.scores?.testing_documentation || 0}/10</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Detailed Reasoning */}
+                  <div className="space-y-4">
+                    <h5 className="text-sm font-semibold">Detailed Analysis</h5>
+                    
+                    {aiAnalysis.analysis?.reasoning?.code_quality && (
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">Code Quality</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.code_quality}</p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.analysis?.reasoning?.logic_functionality && (
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">Logic & Functionality</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.logic_functionality}</p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.analysis?.reasoning?.performance_security && (
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">Performance & Security</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.performance_security}</p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.analysis?.reasoning?.testing_documentation && (
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-sm font-medium mb-2">Testing & Documentation</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.testing_documentation}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 text-xs text-muted-foreground">
+                    Analyzed at: {new Date(aiAnalysis.analyzed_at).toLocaleString()}
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis Error */}
+              {analysisError && (
+                <div className="mt-6 p-4 border border-destructive rounded-lg bg-destructive/10">
+                  <p className="text-sm text-destructive">{analysisError}</p>
+                </div>
+              )}
+
+              {/* Custom AI Analysis */}
+              <div className="mt-6 border-t pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <h4 className="text-lg font-semibold">Ask AI About This PR</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="e.g., Should developer create a new clean PR and then work?"
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCustomAnalysis(selectedPR)
+                        }
+                      }}
+                      className="flex-1"
+                      disabled={analyzingCustom}
+                    />
+                    <Button
+                      onClick={() => handleCustomAnalysis(selectedPR)}
+                      disabled={analyzingCustom || !customPrompt.trim()}
+                      className="gap-2"
+                    >
+                      {analyzingCustom ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        'Ask AI'
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Custom Analysis Result */}
+                  {customAnalysis && (
+                    <Card className="bg-muted/50">
+                      <CardContent className="pt-4">
+                        <div className="mb-3">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Question:</p>
+                          <p className="text-sm">{customAnalysis.custom_prompt}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">AI Response:</p>
+                          <p className="text-sm leading-relaxed">{customAnalysis.analysis_result}</p>
+                        </div>
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          Analyzed at: {new Date(customAnalysis.analyzed_at).toLocaleString()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Custom Analysis Error */}
+                  {customAnalysisError && (
+                    <div className="p-4 border border-destructive rounded-lg bg-destructive/10">
+                      <p className="text-sm text-destructive">{customAnalysisError}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {commentsByPR[selectedPR.repo_id] && (
-                <div className="mt-4">
+                <div className="mt-6 border-t pt-6">
                   <h4 className="text-sm font-semibold mb-3">Comments ({commentsByPR[selectedPR.repo_id].length})</h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {commentsByPR[selectedPR.repo_id].map((comment) => (

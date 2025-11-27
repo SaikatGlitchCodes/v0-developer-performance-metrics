@@ -9,23 +9,25 @@ import { PRCommentAnalysis } from "@/components/pr-comment-analysis"
 import { TeamDevelopersSection } from "@/components/team-developers-section"
 import axios from "axios"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { useTeams } from "@/lib/context/teamsContext"
+import { useTeamData } from "@/lib/context/teamDataContext"
 
 export default function Dashboard() {
-  const [teams, setTeams] = useState([])
+  const { teams, loading, fetchTeams } = useTeams()
+  const { fetchTeamData: fetchTeamDataFromContext, getTeamData, isLoadingTeam, clearCache } = useTeamData()
   const [selectedTeam, setSelectedTeam] = useState("")
-  const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [exportFormat, setExportFormat] = useState('excel')
   const [lastQuarterData, setLastQuarterData] = useState([]);
-  const [lastQuarterLoading, setLastQuarterLoading] = useState(false);
 
   useEffect(() => {
     const savedTeam = localStorage.getItem('selectedTeam')
     if (savedTeam) {
       setSelectedTeam(savedTeam)
     }
+    // Fetch teams only if not already cached
     fetchTeams();
-  }, [])
+  }, [fetchTeams])
 
   useEffect(() => {
     if (selectedTeam) {
@@ -33,39 +35,35 @@ export default function Dashboard() {
     }
   }, [selectedTeam]);
 
-  const fetchTeams = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await axios.get('http://localhost:4000/teams');
-      if (error) {
-        throw new Error('Error fetching teams');
-      }
-      console.log('team', data.teams)
-      setTeams(data.teams);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
   const fetchTeamData = async (teamId) => {
     try {
-      setLastQuarterLoading(true);
-      const response = await axios.get(`http://localhost:4000/prs/team/${teamId}`);
-      console.log('response', response.data);
-      setLastQuarterData(response.data);
+      // Check if we have cached data first
+      const cachedData = getTeamData(teamId);
+      if (cachedData) {
+        setLastQuarterData(cachedData);
+      }
+      
+      // Fetch from context (which handles caching internally)
+      const data = await fetchTeamDataFromContext(teamId);
+      setLastQuarterData(data);
     } catch (error) {
       console.error("Error fetching team data:", error);
-    } finally {
-      setLastQuarterLoading(false);
     }
   };
+
+  const lastQuarterLoading = selectedTeam ? isLoadingTeam(selectedTeam) : false;
 
   const handleSyncComments = async () => {
     if (!selectedTeam) return
     try {
       setSyncing(true);
       await axios.post('http://localhost:4000/prs/refresh-team-prs', { team_id: selectedTeam });
+      
+      // Clear cache and refetch teams to update last_sync
+      clearCache(selectedTeam);
+      await fetchTeams(true); // Force refresh teams
+      await fetchTeamData(selectedTeam); // Refetch team data
+      
       alert("Comments synced successfully!");
     } catch (error) {
       console.error("Error syncing comments:", error)

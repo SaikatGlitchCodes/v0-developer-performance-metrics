@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { GithubProvider } from "@/lib/context/githubData";
+import { TeamsProvider } from "@/lib/context/teamsContext";
+import { TeamDataProvider } from "@/lib/context/teamDataContext";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -21,10 +23,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <GithubProvider token={process.env.NEXT_PUBLIC_GITHUB_TOKEN}>
-        <body className={`font-sans antialiased`}>
-          {children}
-          <Analytics />
-        </body>
+        <TeamsProvider>
+          <TeamDataProvider>
+            <body className={`font-sans antialiased`}>
+              {children}
+              <Analytics />
+            </body>
+          </TeamDataProvider>
+        </TeamsProvider>
       </GithubProvider>
     </html>
   );
