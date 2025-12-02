@@ -10,23 +10,21 @@ import { TeamDevelopersSection } from "@/components/team-developers-section"
 import axios from "axios"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useTeams } from "@/lib/context/teamsContext"
-import { useTeamData } from "@/lib/context/teamDataContext"
 import { BrandLoader } from "@/components/brand-loader"
 
 export default function Dashboard() {
   const { teams, loading, fetchTeams } = useTeams()
-  const { fetchTeamData: fetchTeamDataFromContext, getTeamData, isLoadingTeam, clearCache } = useTeamData()
   const [selectedTeam, setSelectedTeam] = useState("")
   const [syncing, setSyncing] = useState(false)
   const [exportFormat, setExportFormat] = useState('excel')
-  const [lastQuarterData, setLastQuarterData] = useState([]);
+  const [lastQuarterData, setLastQuarterData] = useState([])
+  const [lastQuarterLoading, setLastQuarterLoading] = useState(false)
 
   useEffect(() => {
     const savedTeam = localStorage.getItem('selectedTeam')
     if (savedTeam) {
       setSelectedTeam(savedTeam)
     }
-    // Fetch teams only if not already cached
     fetchTeams();
   }, [fetchTeams])
 
@@ -37,39 +35,31 @@ export default function Dashboard() {
   }, [selectedTeam]);
 
   const fetchTeamData = async (teamId) => {
+    setLastQuarterLoading(true)
     try {
-      // Check if we have cached data first
-      const cachedData = getTeamData(teamId);
-      if (cachedData) {
-        setLastQuarterData(cachedData);
-      }
-      
-      // Fetch from context (which handles caching internally)
-      const data = await fetchTeamDataFromContext(teamId);
-      setLastQuarterData(data);
+      const response = await axios.get(`https://metrictracker-be.onrender.com/prs/team/${teamId}`)
+      setLastQuarterData(response.data)
     } catch (error) {
-      console.error("Error fetching team data:", error);
+      console.error("Error fetching team data:", error)
+    } finally {
+      setLastQuarterLoading(false)
     }
-  };
-
-  const lastQuarterLoading = selectedTeam ? isLoadingTeam(selectedTeam) : false;
+  }
 
   const handleSyncComments = async () => {
     if (!selectedTeam) return
     try {
-      setSyncing(true);
-      await axios.post('https://metrictracker-be.onrender.com/prs/refresh-team-prs', { team_id: selectedTeam });
+      setSyncing(true)
+      await axios.post('https://metrictracker-be.onrender.com/prs/refresh-team-prs', { team_id: selectedTeam })
       
-      // Clear cache and refetch teams to update last_sync
-      clearCache(selectedTeam);
-      await fetchTeams(true); // Force refresh teams
-      await fetchTeamData(selectedTeam); // Refetch team data
+      await fetchTeams(true)
+      await fetchTeamData(selectedTeam)
       
-      alert("Comments synced successfully!");
+      alert("Comments synced successfully!")
     } catch (error) {
       console.error("Error syncing comments:", error)
     } finally {
-      setSyncing(false);
+      setSyncing(false)
     }
   }
 
