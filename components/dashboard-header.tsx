@@ -80,7 +80,7 @@ export function DashboardHeader({
       </div>
 
       <div className="flex gap-3">
-        {onExport && (
+        {/* {onExport && (
           <button
             onClick={onExport}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
@@ -88,7 +88,7 @@ export function DashboardHeader({
             <Download size={16} />
             Export Report
           </button>
-        )}
+        )} */}
         {onSettings && (
           <button
             onClick={onSettings}
