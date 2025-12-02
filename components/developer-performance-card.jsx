@@ -10,7 +10,7 @@ export function DeveloperPerformanceCard({
   developer
 }) {
   const [showIssues, setShowIssues] = useState(false);
-  const {closedPRs, display_name, draftPRs, github_username, mergedPRs, openPRs, repos, totalComments, totalPRs} =developer;
+  const {closedPRs, display_name, draftPRs, github_username, mergedPRs, openPRs, repos, totalComments, totalPRs} = developer || {};
   const MetricBadge = ({
     label,
     value,
@@ -57,20 +57,20 @@ export function DeveloperPerformanceCard({
             <div className="space-y-2">
               <MetricBadge
                 label="Total PRs"
-                value={ totalPRs}
+                value={totalPRs || 0}
               />
               <MetricBadge
                 label="Merged PRs"
-                value={ mergedPRs}
+                value={mergedPRs || 0}
               />
               <MetricBadge
                 label="Merge Rate"
-                value={ totalPRs > 0 ? ((mergedPRs / totalPRs) * 100).toFixed(2) : "0"}
+                value={totalPRs > 0 ? ((mergedPRs / totalPRs) * 100).toFixed(2) : "0"}
                 unit="%"
               />
               <MetricBadge
                 label="Avg Conversations"
-                value={(totalComments / totalPRs).toFixed(2)}
+                value={totalPRs > 0 ? (totalComments / totalPRs).toFixed(2) : "0"}
               />
             </div>
 
@@ -80,7 +80,7 @@ export function DeveloperPerformanceCard({
                 <p className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                   View full profile →
                 </p>
-                {repos.length > 0 && (
+                {repos && repos.length > 0 && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -113,7 +113,7 @@ export function DeveloperPerformanceCard({
                 </button>
               </div>
 
-              {repos.length === 0 ? (
+              {!repos || repos.length === 0 ? (
                 <p className="text-muted-foreground">No PRs found</p>
               ) : (
                 <div className="space-y-3">

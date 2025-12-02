@@ -17,7 +17,7 @@ export function TeamDevelopersSection({ lastQuarterData, lastQuarterLoading }) {
   // }
 const data = lastQuarterData?.timeline;
 console.log(data?.start)
-  if (!lastQuarterLoading && lastQuarterData?.data?.memberBreakdown?.length === 0) {
+  if (!lastQuarterLoading && (!lastQuarterData?.data?.memberBreakdown || lastQuarterData?.data?.memberBreakdown?.length === 0)) {
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
@@ -39,7 +39,7 @@ console.log(data?.start)
         {!lastQuarterLoading && lastQuarterData?.data?.memberBreakdown?.map((dev) => (
           <DeveloperPerformanceCard key={dev.display_name} developer={dev} lastQuarterLoading={lastQuarterLoading} />
         ))}
-        <TopPerformersCard topPerformers={lastQuarterData.topPerformers} lastQuarterLoading={lastQuarterLoading} />
+        <TopPerformersCard topPerformers={lastQuarterData?.topPerformers} lastQuarterLoading={lastQuarterLoading} />
       </div>
     </div>
   )

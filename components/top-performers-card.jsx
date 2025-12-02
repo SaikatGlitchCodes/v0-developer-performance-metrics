@@ -129,8 +129,8 @@ export function TopPerformersCard({ topPerformers, lastQuarterLoading }) {
             avatar_url, 
             performanceScore, 
             metrics 
-          } = developer;
-          const { totalPRs, mergedPRs, mergeRate, totalComments, engagementScore } = metrics;
+          } = developer || {};
+          const { totalPRs = 0, mergedPRs = 0, mergeRate = 0, totalComments = 0, engagementScore = 0 } = metrics || {};
           
           return (
             <div

@@ -184,10 +184,10 @@ export function TeamManagementPage() {
       const saveData = await saveRes.json();
       if (!saveRes.ok) throw new Error(saveData.error);
 
-      setGithubUsers(saveData.users);
+      setGithubUsers(saveData.users || []);
       setGithubToken("");
       setSuccess(
-        `Successfully fetched and saved ${data.users.length} GitHub users!`
+        `Successfully fetched and saved ${data?.users?.length || 0} GitHub users!`
       );
     } catch (err) {
       setError(

@@ -225,7 +225,7 @@ export default function EngineerProfilePage() {
   const calendarEvents = useMemo(() => {
     if (!data?.data?.prs) return []
     
-    return data.data.prs.map(pr => {
+    return data?.data?.prs?.map(pr => {
       const createdDate = pr.created_at
       let endDate = pr.merged_at || pr.closed_at || new Date().toISOString()
       
@@ -259,7 +259,7 @@ export default function EngineerProfilePage() {
     if (!data?.data?.comments) return {}
     
     const grouped = {}
-    data.data.comments.forEach(comment => {
+    data?.data?.comments?.forEach(comment => {
       if (!grouped[comment.repo_id]) {
         grouped[comment.repo_id] = []
       }
@@ -455,7 +455,7 @@ export default function EngineerProfilePage() {
                   right: 'dayGridMonth,timeGridWeek,listWeek'
                 }}
                 events={calendarEvents}
-                eventClick={(info) => setSelectedPR(info.event.extendedProps.pr)}
+                eventClick={(info) => setSelectedPR(info?.event?.extendedProps?.pr)}
                 height="auto"
                 eventDisplay="block"
                 displayEventTime={false}
@@ -596,31 +596,31 @@ export default function EngineerProfilePage() {
                   <div className="space-y-4">
                     <h5 className="text-sm font-semibold">Detailed Analysis</h5>
                     
-                    {aiAnalysis.analysis?.reasoning?.code_quality && (
+                    {aiAnalysis?.analysis?.reasoning?.code_quality && (
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm font-medium mb-2">Code Quality</p>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.code_quality}</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis?.analysis?.reasoning?.code_quality}</p>
                       </div>
                     )}
                     
-                    {aiAnalysis.analysis?.reasoning?.logic_functionality && (
+                    {aiAnalysis?.analysis?.reasoning?.logic_functionality && (
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm font-medium mb-2">Logic & Functionality</p>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.logic_functionality}</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis?.analysis?.reasoning?.logic_functionality}</p>
                       </div>
                     )}
                     
-                    {aiAnalysis.analysis?.reasoning?.performance_security && (
+                    {aiAnalysis?.analysis?.reasoning?.performance_security && (
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm font-medium mb-2">Performance & Security</p>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.performance_security}</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis?.analysis?.reasoning?.performance_security}</p>
                       </div>
                     )}
                     
-                    {aiAnalysis.analysis?.reasoning?.testing_documentation && (
+                    {aiAnalysis?.analysis?.reasoning?.testing_documentation && (
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm font-medium mb-2">Testing & Documentation</p>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.analysis.reasoning.testing_documentation}</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis?.analysis?.reasoning?.testing_documentation}</p>
                       </div>
                     )}
                   </div>
@@ -735,13 +735,13 @@ export default function EngineerProfilePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>All Pull Requests</CardTitle>
-                  <CardDescription>{data.data.prs.length} total PRs in selected period</CardDescription>
+                  <CardDescription>{data?.data?.prs?.length || 0} total PRs in selected period</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                {data.data.prs.map((pr) => (
+                {data?.data?.prs?.map((pr) => (
                   <div
                     key={pr.number}
                     className="p-3 border rounded-lg hover:bg-accent transition-all cursor-pointer"

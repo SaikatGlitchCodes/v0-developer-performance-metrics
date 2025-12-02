@@ -81,11 +81,11 @@ export function PRCommentAnalysis({
       ['Quarter', 'Total PRs', 'Total Comments', 'Team Comments', 'Compare Team Comments', 'External Comments'],
       ...data.quarterlyData.map(q => [
         q.quarter,
-        q.totalPRs,
-        q.totalComments,
-        q.teamMemberComments,
+        q.totalPRs || 0,
+        q.totalComments || 0,
+        q.teamMemberComments || 0,
         q.compareTeamComments || 0,
-        q.externalComments
+        q.externalComments || 0
       ])
     ].map(row => row.join(',')).join('\n')
     
@@ -104,12 +104,12 @@ export function PRCommentAnalysis({
     return data.quarterlyData.map(q => {
       const chartData = {
         quarter: q.quarter,
-        [`${data.teams.primary.name} - Team`]: q.teamMemberComments,
-        External: q.externalComments,
+        [`${data?.teams?.primary?.name || 'Team'} - Team`]: q.teamMemberComments || 0,
+        External: q.externalComments || 0,
       }
       
       if (compareTeamId && q.compareTeamComments) {
-        chartData[`${data.teams.comparison.name} - Team`] = q.compareTeamComments
+        chartData[`${data?.teams?.comparison?.name || 'Comparison Team'} - Team`] = q.compareTeamComments || 0
       }
       
       return chartData
@@ -121,8 +121,8 @@ export function PRCommentAnalysis({
     
     return data.quarterlyData.map(q => ({
       quarter: q.quarter,
-      'Total PRs': q.totalPRs,
-      'Total Comments': q.totalComments,
+      'Total PRs': q.totalPRs || 0,
+      'Total Comments': q.totalComments || 0,
     }))
   }
 
@@ -130,14 +130,14 @@ export function PRCommentAnalysis({
     if (!data?.yearSummary) return []
     
     const pieData = [
-      { name: data.teams.primary.name, value: data.yearSummary.teamMemberComments },
-      { name: "External", value: data.yearSummary.externalComments },
+      { name: data?.teams?.primary?.name || 'Team', value: data?.yearSummary?.teamMemberComments || 0 },
+      { name: "External", value: data?.yearSummary?.externalComments || 0 },
     ]
     
-    if (compareTeamId && data.yearSummary.compareTeamComments) {
+    if (compareTeamId && data?.yearSummary?.compareTeamComments) {
       pieData.splice(1, 0, { 
-        name: data.teams.comparison.name, 
-        value: data.yearSummary.compareTeamComments 
+        name: data?.teams?.comparison?.name || 'Comparison Team', 
+        value: data?.yearSummary?.compareTeamComments || 0
       })
     }
     
@@ -195,7 +195,7 @@ export function PRCommentAnalysis({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.yearSummary.totalPRs || 0}</div>
+            <div className="text-2xl font-bold">{data?.yearSummary?.totalPRs || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">Last 4 quarters</p>
           </CardContent>
         </Card>
@@ -209,7 +209,7 @@ export function PRCommentAnalysis({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.yearSummary.totalComments || 0}
+              {data?.yearSummary?.totalComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               All quarterly PR comments
@@ -226,10 +226,10 @@ export function PRCommentAnalysis({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.yearSummary.teamMemberComments || 0}
+              {data?.yearSummary?.teamMemberComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {data?.yearSummary.teamMemberPercent.toFixed(1)}% of total
+              {data?.yearSummary?.teamMemberPercent?.toFixed(1) || 0}% of total
             </p>
           </CardContent>
         </Card>
@@ -243,10 +243,10 @@ export function PRCommentAnalysis({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.yearSummary.externalComments || 0}
+              {data?.yearSummary?.externalComments || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {data?.yearSummary.externalPercent.toFixed(1)}% of total
+              {data?.yearSummary?.externalPercent?.toFixed(1) || 0}% of total
             </p>
           </CardContent>
         </Card>
@@ -379,9 +379,9 @@ export function PRCommentAnalysis({
                     <Legend />
                     {data?.teams && (
                       <>
-                        <Bar dataKey={`${data.teams.primary.name} - Team`} fill={COLORS[0]} />
-                        {compareTeamId && data.teams.comparison && (
-                          <Bar dataKey={`${data.teams.comparison.name} - Team`} fill={COLORS[1]} />
+                        <Bar dataKey={`${data?.teams?.primary?.name || 'Team'} - Team`} fill={COLORS[0]} />
+                        {compareTeamId && data?.teams?.comparison && (
+                          <Bar dataKey={`${data?.teams?.comparison?.name || 'Comparison Team'} - Team`} fill={COLORS[1]} />
                         )}
                         <Bar dataKey="External" fill={COLORS[2]} />
                       </>
@@ -408,14 +408,14 @@ export function PRCommentAnalysis({
                       <>
                         <Line 
                           type="monotone" 
-                          dataKey={`${data.teams.primary.name} - Team`} 
+                          dataKey={`${data?.teams?.primary?.name || 'Team'} - Team`} 
                           stroke={COLORS[0]} 
                           strokeWidth={2}
                         />
-                        {compareTeamId && data.teams.comparison && (
+                        {compareTeamId && data?.teams?.comparison && (
                           <Line 
                             type="monotone" 
-                            dataKey={`${data.teams.comparison.name} - Team`} 
+                            dataKey={`${data?.teams?.comparison?.name || 'Comparison Team'} - Team`} 
                             stroke={COLORS[1]} 
                             strokeWidth={2}
                           />
@@ -458,7 +458,7 @@ export function PRCommentAnalysis({
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">{quarter.quarter}</h3>
                     <div className="text-sm text-muted-foreground">
-                      {quarter.totalPRs} PRs • {quarter.totalComments} comments
+                      {quarter.totalPRs || 0} PRs • {quarter.totalComments || 0} comments
                     </div>
                   </div>
                   
@@ -467,9 +467,9 @@ export function PRCommentAnalysis({
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-blue-600 flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        {data.teams.primary.name}
+                        {data?.teams?.primary?.name || 'Team'}
                       </h4>
-                      {quarter.topCommenters.fromTeam.map((commenter, idx) => (
+                      {quarter?.topCommenters?.fromTeam?.map((commenter, idx) => (
                         <div key={commenter.username} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">#{idx + 1}</span>
@@ -481,11 +481,11 @@ export function PRCommentAnalysis({
                     </div>
 
                     {/* Comparison Team */}
-                    {compareTeamId && data.teams.comparison && quarter.topCommenters.fromCompareTeam && (
+                    {compareTeamId && data?.teams?.comparison && quarter?.topCommenters?.fromCompareTeam && (
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium text-emerald-600 flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          {data.teams.comparison.name}
+                          {data?.teams?.comparison?.name || 'Comparison Team'}
                         </h4>
                         {quarter.topCommenters.fromCompareTeam.map((commenter, idx) => (
                           <div key={commenter.username} className="flex items-center justify-between text-sm">
@@ -505,7 +505,7 @@ export function PRCommentAnalysis({
                         <ExternalLink className="w-4 h-4" />
                         External
                       </h4>
-                      {quarter.topCommenters.external.map((commenter, idx) => (
+                      {quarter?.topCommenters?.external?.map((commenter, idx) => (
                         <div key={commenter.username} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">#{idx + 1}</span>
