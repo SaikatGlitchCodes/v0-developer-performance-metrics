@@ -46,7 +46,7 @@ export function DashboardHeader({
   return (
     <div className="mb-8">
       <div className="flex justify-between">
-        <div className="flex gap-x-3">
+        <div className="gap-x-3">
           <Image
             src="/brand.png"
             alt="Brand Logo"
