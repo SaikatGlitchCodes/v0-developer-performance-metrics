@@ -136,7 +136,7 @@ export default function Dashboard() {
         {selectedTeam && (
           <PRCommentAnalysis
             teamId={selectedTeam}
-            compareTeamId={'9e48e063-1272-40ac-8d31-6300783d03d4'}
+            compareTeamId={process.env.NEXT_PUBLIC_PLATFORM_TEAM || 'f8ebb6da-71a3-4799-baee-3d56375b4a38'}
           />
         )}
       </div>
